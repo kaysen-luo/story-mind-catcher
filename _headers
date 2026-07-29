@@ -1,0 +1,11 @@
+# ============================================================================
+# Cloudflare Pages · HTTP 响应头配置
+# 部署到 CF Pages 时，此文件放在项目根目录会自动生效
+# ============================================================================
+
+/*
+  X-Robots-Tag: noai, noimageai
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: interest-cohort=()

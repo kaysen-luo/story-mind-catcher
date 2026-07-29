@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- maskable: full-bleed safe area, content inside 80% -->
+  <rect width="512" height="512" fill="#14141c"/>
+  <text x="50%" y="50%" text-anchor="middle" dominant-baseline="central"
+        font-family="-apple-system,BlinkMacSystemFont,Segoe UI,sans-serif"
+        font-size="220" font-weight="700" fill="#4a9eff">书</text>
+</svg>

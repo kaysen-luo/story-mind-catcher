@@ -1,0 +1,77 @@
+# ============================================================================
+# Story Mind Catcher · robots.txt
+# © 2026 马启航Marvis · Kaysen Luo. All rights reserved.
+# ============================================================================
+# 部署上线时上传到域名根目录 https://<your-domain>/robots.txt
+
+# ---------- AI 训练爬虫 · 全面拒绝 ----------
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+User-agent: OAI-SearchBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: anthropic-ai
+Disallow: /
+
+User-agent: Claude-Web
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: GoogleOther
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Perplexity-User
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: ByteDance
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: FacebookBot
+Disallow: /
+
+User-agent: cohere-ai
+Disallow: /
+
+User-agent: Diffbot
+Disallow: /
+
+User-agent: ImagesiftBot
+Disallow: /
+
+User-agent: Omgili
+Disallow: /
+
+User-agent: Timpibot
+Disallow: /
+
+# ---------- 普通搜索引擎 · 允许收录（若上线后想被搜到）----------
+# 如果你希望产品页从所有搜索引擎消失，把下面这段改成：
+#   User-agent: *
+#   Disallow: /
+
+User-agent: *
+Allow: /
+
+# 结束

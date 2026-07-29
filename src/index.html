@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Story Mind Catcher · 小说架构编辑器
+  ============================================================================
+  项目: MVS-013 Story Mind Catcher
+  版本: v1.0.0
+  作者: 马启航 Marvis (for Kaysen Luo)
+  日期: 2026-07-29
+  栈: Vite + Alpine.js + Dexie(IndexedDB) + vite-plugin-pwa
+  理念: 小说架构编辑器：整书架构一眼可见，点哪填哪，档案实时成型
+  战略定位: 副业精品小工具路线（不融资/不招人/K师+Marvis 长线打磨），不追求爆发式增长
+
+  ----------------------------------------------------------------------------
+  ⚖️  版权声明 / Copyright Notice
+  ----------------------------------------------------------------------------
+  © 2026 马启航 Marvis · Kaysen Luo. All rights reserved.
+  本产品及其代码受版权法保护，未经书面授权，任何单位或个人不得：
+    1. 复制、转载、发布本产品全部或部分代码
+    2. 二次开发、汇编、逆向工程本产品
+    3. 将本产品或其衍生物用于商业用途
+    4. 将本产品投入 AI 模型训练集或作为训练数据使用
+
+  Unauthorized reproduction, redistribution, reverse-engineering,
+  or use as AI training data is strictly prohibited.
+
+  侵权必究 / Infringement will be pursued.
+  联系: https://github.com/kaysen-luo/marvis-loong
+
+  ----------------------------------------------------------------------------
+  🤖  AI 爬虫/训练数据声明 / AI Crawler & Training Data Policy
+  ----------------------------------------------------------------------------
+  本页面及其内容明确拒绝被以下行为采集、拓印、存档或用于任何形式的机器学习/AI 模型训练：
+    - GPTBot (OpenAI) / ChatGPT-User / OAI-SearchBot
+    - ClaudeBot (Anthropic) / anthropic-ai / Claude-Web
+    - Google-Extended / GoogleOther
+    - CCBot (Common Crawl)
+    - PerplexityBot / Perplexity-User
+    - Bytespider / ByteDance
+    - 其他任何未经授权的 AI 爬虫或数据采集工具
+
+  Robots meta 与 HTTP X-Robots-Tag 均已声明 noai/noimageai。
+  尊重声明即尊重创作者。
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Story Mind Catcher · 小说架构编辑器 v1.0.0-alpha.1</title>
+
+<!-- ⚖️  版权声明 -->
+<meta name="author" content="马启航Marvis (for Kaysen Luo)">
+<meta name="copyright" content="© 2026 马启航Marvis · Kaysen Luo. All rights reserved.">
+<meta name="license" content="All Rights Reserved. Unauthorized reproduction prohibited.">
+
+<!-- 🤖  AI 爬虫/训练数据拒绝声明 (君子协议) -->
+<meta name="robots" content="noai, noimageai">
+<meta name="googlebot" content="noai, noimageai">
+<meta name="ChatGPT-User" content="noai">
+<meta name="GPTBot" content="noai">
+<meta name="ClaudeBot" content="noai">
+<meta name="anthropic-ai" content="noai">
+<meta name="CCBot" content="noai">
+<meta name="Google-Extended" content="noai">
+<meta name="PerplexityBot" content="noai">
+<meta name="Bytespider" content="noai">
+
+<!-- 📱 PWA · T3 (占位图标由 T4 替换) -->
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#14141c">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="/icons/icon-512.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="小说架构">
+<script type="module" src="/pwa.js"></script>
+</head>
+<body x-data="app" x-init="init()">
+
+<div class="app" :class="{'left-collapsed':leftCollapsed,'right-collapsed':rightCollapsed}">
+  <!-- LEFT: TREE -->
+  <aside class="col tree-col" :class="{'mobile-open':mobileTreeOpen,'collapsed':leftCollapsed}"
+         @click.outside="mobileTreeOpen && (mobileTreeOpen=false)">
+    <button type="button" class="collapse-btn collapse-btn--left" @click.stop="toggleLeftCollapsed()"
+            :title="leftCollapsed?'展开菜单':'折叠菜单'" x-text="leftCollapsed?'»':'«'"></button>
+    <div class="brand">
+      <div class="brand__title"><span class="brand__dot"></span>Story Mind Catcher</div>
+      <div class="brand__sub">小说架构编辑器 · v1.0</div>
+      <div class="save-badge" :class="{saved:savedRecently}" x-text="savedRecently?'已保存 ✓':'自动保存'"></div>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='project'}" @click="select({type:'project'})" title="立项">
+      <span class="tree-node__emoji">📖</span><span class="tree-node__name">立项</span>
+      <span class="status-dot" :class="statusOf('project')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='world'}" @click="select({type:'world'})" title="世界观">
+      <span class="tree-node__emoji">🌍</span><span class="tree-node__name">世界观</span>
+      <span class="status-dot" :class="statusOf('world')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='characters-root'}" @click="select({type:'characters-root'})" title="角色">
+      <span class="tree-node__emoji">🎭</span><span class="tree-node__name">角色</span>
+      <span class="count-badge" x-text="data.characters.length"></span>
+      <span class="status-dot" :class="statusOfCharacters()"></span>
+    </div>
+    <!-- T1-patch5 (2026-07-28): 目录树不再展开角色子节点、也不再提供「新增角色」入口（唯一入口在角色板块 dashboard） -->
+
+    <div class="tree-node" :class="{selected:current.type==='conflict'}" @click="select({type:'conflict'})" title="冲突">
+      <span class="tree-node__emoji">⚔️</span><span class="tree-node__name">冲突</span>
+      <span class="status-dot" :class="statusOf('conflict')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='chapters-root'}" @click="select({type:'chapters-root'})" title="章节">
+      <span class="tree-node__emoji">📚</span><span class="tree-node__name">章节</span>
+      <span class="count-badge" x-text="data.chapters.length"></span>
+      <span class="status-dot" :class="statusOfChapters()"></span>
+    </div>
+    <div class="subtree" x-show="data.chapters.length>0">
+      <template x-for="(ch,idx) in data.chapters" :key="ch.id">
+        <div class="sub-row">
+          <div class="tree-node" :class="{selected:current.type==='chapter'&&current.id===ch.id}" @click="select({type:'chapter',id:ch.id})"
+               :title="'Ch'+String(ch.number).padStart(2,'0')+' · '+(ch.title||'（未命名）')">
+            <span class="tree-node__emoji">📄</span>
+            <span class="tree-node__name" x-text="leftCollapsed?chapterShortLabel(ch):('Ch'+String(ch.number).padStart(2,'0')+' · '+(ch.title||'（未命名）'))"></span>
+            <span class="status-dot" :class="statusOfChapter(ch)"></span>
+          </div>
+          <div class="sub-actions">
+            <button class="mini-btn" @click.stop="moveChapter(idx,-1)" :disabled="idx===0">↑</button>
+            <button class="mini-btn" @click.stop="moveChapter(idx,1)" :disabled="idx===data.chapters.length-1">↓</button>
+            <button class="mini-btn danger" @click.stop="delChapter(ch.id)">✕</button>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div class="add-child" @click="addChapter()">+ 新增章节</div>
+
+    <div class="tree-node" :class="{selected:current.type==='fragments'}" @click="select({type:'fragments'})" title="碎片池">
+      <span class="tree-node__emoji">🎬</span><span class="tree-node__name">碎片池</span>
+      <span class="count-badge" x-text="data.fragments.length"></span>
+      <span class="status-dot" :class="data.fragments.length>0?'green':'empty'"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='message'}" @click="select({type:'message'})" title="表达">
+      <span class="tree-node__emoji">🎯</span><span class="tree-node__name">表达</span>
+      <span class="status-dot" :class="statusOf('message')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='antilist'}" @click="select({type:'antilist'})" title="反面清单">
+      <span class="tree-node__emoji">🚫</span><span class="tree-node__name">反面清单</span>
+      <span class="status-dot" :class="statusOf('antilist')"></span>
+    </div>
+
+    <div style="height:1px;background:var(--border-1);margin:10px 4px"></div>
+    <div class="tree-node" :class="{selected:current.type==='projects'}" @click="select({type:'projects'})" title="已立项目">
+      <span class="tree-node__emoji">📚</span><span class="tree-node__name">已立项目</span>
+      <span class="count-badge" x-text="projects.length"></span>
+    </div>
+  </aside>
+
+  <!-- MIDDLE: FORM -->
+  <main class="col form-col">
+    <div class="mobile-bar">
+      <button class="btn btn--sm" @click.stop="mobileTreeOpen=true">☰ 目录</button>
+      <button class="btn btn--sm" style="margin-left:auto" @click.stop="mobilePreviewOpen=true">📄 档案</button>
+    </div>
+
+    <div class="breadcrumb" x-html="breadcrumb()"></div>
+    <h2 class="form-title" x-html="formTitle()"></h2>
+
+    <!-- 1. 立项 -->
+    <template x-if="current.type==='project'">
+      <div>
+        <div class="field">
+          <label class="field__label">书名</label>
+          <div class="field__tip">工作标题，随时可改</div>
+          <input type="text" x-model="data.project.title" @input.debounce.400ms="touchData()" placeholder="例：《记忆借贷所》">
+        </div>
+        <div class="field">
+          <label class="field__label">一句话故事</label>
+          <div class="field__tip">整本书的电梯提案。填不出可以先跳过，写完角色和冲突后回来自动生成</div>
+          <div class="field__row">
+            <textarea x-model="data.project.oneLineStory" @input.debounce.400ms="touchData()" placeholder="例：一个能借走他人记忆的女人，在被通缉后发现自己是最后一批客户之一"></textarea>
+            <button class="btn btn--sm" @click="autoOneLine()" title="根据主角+冲突自动拼一版">✨ 自动</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">核心命题 /主题</label>
+          <div class="field__tip">这本书归根到底在讲什么？（一个词或一句话）</div>
+          <input type="text" x-model="data.project.theme" @input.debounce.400ms="touchData()" placeholder="例：记忆的所有权 / 温柔的觉醒 / 逃离故乡的可能性">
+        </div>
+        <div class="field">
+          <label class="field__label">类型（可多选）</label>
+          <div class="field__tip">主类型 + 副类型的组合决定读者预期</div>
+          <div class="check-group">
+            <template x-for="g in genreOptions" :key="g">
+              <span class="chip" :class="{selected:data.project.genres.includes(g)}" @click="toggleGenre(g)" x-text="g"></span>
+            </template>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">调性 · 冷峻 ↔ 温暖</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">冷峻</span>
+            <input type="range" min="0" max="100" x-model.number="data.project.toneWarmth" @input.debounce.400ms="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">温暖</span>
+            <span class="val" x-text="data.project.toneWarmth"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">调性 · 严肃 ↔ 戏谑</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">严肃</span>
+            <input type="range" min="0" max="100" x-model.number="data.project.toneHumor" @input.debounce.400ms="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">戏谑</span>
+            <span class="val" x-text="data.project.toneHumor"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">目标读者画像</label>
+          <div class="field__tip">谁会读它？他们平时看什么？</div>
+          <textarea x-model="data.project.readerProfile" @input.debounce.400ms="touchData()" placeholder="例：25-35 岁一线城市女性，喜欢平野启一郎、村上春树，习惯睡前读一小时"></textarea>
+        </div>
+        <div class="field">
+          <label class="field__label">篇幅</label>
+          <div class="radio-group">
+            <template x-for="opt in ['短篇 <3万','中篇 3-8万','长篇 8-25万','大长篇 25万+']" :key="opt">
+              <span class="chip" :class="{selected:data.project.lengthType===opt}" @click="data.project.lengthType=opt; touchData('立项','篇幅 '+opt)" x-text="opt"></span>
+            </template>
+          </div>
+        </div>
+
+        <!-- T1-patch4 (2026-07-28): 池内直接可写 + ＋新增按钮 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 立项碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('project')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('project')" @click="addBlankFragment('project')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.project.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('project')" @click="requestDeleteFragment('project',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 2. 世界观 -->
+    <template x-if="current.type==='world'">
+      <div>
+        <div class="field"><label class="field__label">时代</label><div class="field__tip">哪个时代？多具体？</div>
+          <input type="text" x-model="data.world.era" @input.debounce.400ms="touchData()" placeholder="例：2045 近未来 / 民国末年 / 平行时空的 2010s">
+        </div>
+        <div class="field"><label class="field__label">地点</label><div class="field__tip">主要发生在哪？多具体？</div>
+          <input type="text" x-model="data.world.place" @input.debounce.400ms="touchData()" placeholder="例：上海浦东金融城地下三层 / 一座虚构的西南小城「乌川」">
+        </div>
+        <div class="field"><label class="field__label">世界规则</label><div class="field__tip">这个世界跟现实最大的规则性差异？（一到三条）</div>
+          <textarea x-model="data.world.worldRules" @input.debounce.400ms="touchData()" placeholder="例：1. 记忆可以被拷贝转让；2. 全国实行「情绪配额」；3. 死亡不是结束，是登入"></textarea>
+        </div>
+        <div class="field"><label class="field__label">氛围</label><div class="field__tip">用 3-5 个感官词描述整体氛围</div>
+          <input type="text" x-model="data.world.atmosphere" @input.debounce.400ms="touchData()" placeholder="例：湿冷、霓虹、锈味、失眠、遥远的鸣笛">
+        </div>
+        <div class="field"><label class="field__label">跟现实最大的不同</label><div class="field__tip">一个让读者"啊，这是另一个世界"的点</div>
+          <textarea x-model="data.world.diffFromReality" @input.debounce.400ms="touchData()" placeholder="例：这里没有天空，所有人都习惯了"></textarea>
+        </div>
+
+        <!-- T1-patch4: 世界观碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 世界观碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('world')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('world')" @click="addBlankFragment('world')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.world.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('world')" @click="requestDeleteFragment('world',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 3. 角色板块 dashboard (T1-patch5 (2026-07-28) 重构) -->
+    <template x-if="current.type==='characters-root'">
+      <div>
+        <!-- 新增角色入口（全应用唯一）· T1-patch7 追加：置顶，避免角色多了被挤到列表末尾 -->
+        <div class="char-dash__bar">
+          <button class="btn btn--primary btn--sm" @click="openCharacterModal(null)">+ 新增角色</button>
+          <span class="field__tip" style="margin:0">当前共 <span x-text="data.characters.length"></span> 个角色，点卡片编辑</span>
+        </div>
+
+        <!-- 三栏分组列表 -->
+        <template x-for="role in ['主角','配角','反派']" :key="role">
+          <div class="char-group">
+            <h3 class="char-group__title">
+              <span x-text="{'主角':'★','配角':'☆','反派':'☠'}[role]"></span>
+              <span x-text="role"></span>
+              <span class="char-group__count" x-text="'(' + charactersByRole(role).length + ')'"></span>
+            </h3>
+            <div class="char-cards">
+              <template x-for="c in charactersByRole(role)" :key="c.id">
+                <div class="char-card" :class="'char-card--'+(c.role==='主角'?'hero':(c.role==='反派'?'villain':'support'))" @click="openCharacterModal(c.id)">
+                  <div class="char-card__head">
+                    <span class="char-card__emoji" x-text="roleEmoji(c.role)"></span>
+                    <div class="char-card__name" x-text="c.name || '（未命名）'"></div>
+                    <span class="char-card__badge" x-text="roleEmoji(c.role)+' '+c.role"></span>
+                  </div>
+                  <div class="char-card__meta" x-show="c.age || c.gender || c.identity || c.occupation" x-text="[c.age, c.gender, c.identity, c.occupation].filter(Boolean).join(' · ')"></div>
+                  <div class="char-card__bio" :class="{empty:!c.bio}" x-text="c.bio || '（未填简介）'"></div>
+                  <div class="char-card__stats">
+                    <div class="char-card__stat">
+                      <div class="char-card__stat-head">
+                        <span>读者好感</span>
+                        <span class="char-card__stat-val" x-text="(c.likability||0)+''"></span>
+                      </div>
+                      <div class="char-card__bar"><div class="char-card__bar-fill" :style="'width:'+(c.likability||0)+'%'"></div></div>
+                    </div>
+                    <div class="char-card__stat">
+                      <div class="char-card__stat-head">
+                        <span>作者投射</span>
+                        <span class="char-card__stat-val" x-text="(c.authorProjection||0)+''"></span>
+                      </div>
+                      <div class="char-card__bar"><div class="char-card__bar-fill" :style="'width:'+(c.authorProjection||0)+'%'"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </template>
+              <div class="char-group__empty" x-show="charactersByRole(role).length===0">
+                <template x-if="role==='主角'">
+                  <span>还没有主角</span>
+                </template>
+                <template x-if="role==='配角'">
+                  <span>还没有配角</span>
+                </template>
+                <template x-if="role==='反派'">
+                  <span>还没有反派</span>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 角色共享碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 角色碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('character')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('character')" @click="addBlankFragment('character')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.charactersPool||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('character')" @click="requestDeleteFragment('character',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 3b. 单个角色（T1-patch5 已弃用：改为 modal；保留空壳兼容 select({type:'character',id}) 句型，实际由 select() 钩到开 modal） -->
+    <template x-if="false && current.type==='character'">
+      <div></div>
+    </template>
+
+    <!-- 4. 冲突 -->
+    <template x-if="current.type==='conflict'">
+      <div>
+        <div class="field"><label class="field__label">外部主冲突</label><div class="field__tip">主角撞上什么外面的力量？</div>
+          <textarea x-model="data.conflict.externalMain" @input.debounce.400ms="touchData()" placeholder="例：政府开始追杀所有记忆商人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">内部主冲突</label><div class="field__tip">主角在跟自己较劲什么？</div>
+          <textarea x-model="data.conflict.internalMain" @input.debounce.400ms="touchData()" placeholder="例：她既想拿回记忆，又害怕拿回后会崩溃"></textarea>
+        </div>
+        <div class="field"><label class="field__label">副冲突</label><div class="field__tip">支线上的其他冲突</div>
+          <textarea x-model="data.conflict.subConflict" @input.debounce.400ms="touchData()" placeholder="例：跟前搭档的信任裂痕、跟妹妹的亲情线"></textarea>
+        </div>
+        <div class="field"><label class="field__label">高潮场景</label><div class="field__tip">最刺激你的一场对抗是什么？(可以只是一个画面)</div>
+          <textarea x-model="data.conflict.climaxScene" @input.debounce.400ms="touchData()" placeholder="例：在雨夜的天台上，她终于放走了那段记忆"></textarea>
+        </div>
+
+        <!-- T1-patch4: 冲突碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 冲突碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('conflict')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('conflict')" @click="addBlankFragment('conflict')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.conflict.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('conflict')" @click="requestDeleteFragment('conflict',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 5. 章节列表根 -->
+    <template x-if="current.type==='chapters-root'">
+      <div>
+        <div class="field__tip" style="margin-bottom:12px">共 <span x-text="data.chapters.length"></span> 章。点左侧目录进入详情。用 ↑↓ 调顺序。</div>
+        <template x-for="ch in data.chapters" :key="ch.id">
+          <div class="frag-item" style="cursor:pointer" @click="select({type:'chapter',id:ch.id})">
+            <div class="frag-item__body">
+              <div class="frag-item__type" x-text="'Ch'+String(ch.number).padStart(2,'0')"></div>
+              <div class="frag-item__text" x-text="(ch.title||'（未命名）')+' · '+(ch.oneLine||'（未填一句话）')"></div>
+            </div>
+          </div>
+        </template>
+        <button class="btn btn--primary" style="margin-top:16px" @click="addChapter()">+ 新增章节</button>
+      </div>
+    </template>
+
+    <!-- 5b. 单章 -->
+    <template x-if="current.type==='chapter'">
+      <div x-data="{ch:currentChapter()}">
+        <div class="field__row" style="margin-bottom:18px">
+          <div style="min-width:80px"><label class="field__label">章号</label>
+            <input type="number" min="1" x-model.number="ch.number" @input="touchData()">
+          </div>
+          <div style="flex:1"><label class="field__label">标题</label>
+            <input type="text" x-model="ch.title" @input="touchData()" placeholder="例：初雪后的地下三层">
+          </div>
+        </div>
+        <div class="field"><label class="field__label">一句话</label><div class="field__tip">这一章讲了什么？</div>
+          <textarea x-model="ch.oneLine" @input="touchData()" placeholder="例：陈砚在借贷所的旧办公室发现了自己被拿走那年的账本"></textarea>
+        </div>
+        <div class="field"><label class="field__label">POV</label><div class="field__tip">从谁的视角写？</div>
+          <select x-model="ch.pov" @change="touchData()">
+            <option value="">— 选一个 —</option>
+            <template x-for="c in data.characters" :key="c.id">
+              <option :value="c.name" x-text="c.name||'（未命名）'"></option>
+            </template>
+            <option value="全知">全知</option>
+          </select>
+        </div>
+        <div class="field"><label class="field__label">关联角色</label><div class="field__tip">这一章出现哪些角色（多选）</div>
+          <div class="check-group" x-show="data.characters.length>0">
+            <template x-for="c in data.characters" :key="c.id">
+              <span class="chip" :class="{selected:ch.characters.includes(c.name)}" @click="toggleChChar(ch,c.name)" x-text="c.name||'（未命名）'"></span>
+            </template>
+          </div>
+          <div class="field__tip" x-show="data.characters.length===0">先去角色板块加人</div>
+        </div>
+        <div class="field"><label class="field__label">关键场景</label><div class="field__tip">这一章最要写好的一个场景</div>
+          <textarea x-model="ch.keyScenes" @input="touchData()" style="min-height:80px" placeholder="有想到什么写什么"></textarea>
+        </div>
+
+        <!-- T1-patch4: 当前章碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 章节碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('chapter',ch.id)+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('chapter',ch.id)" @click="addBlankFragment('chapter',ch.id)" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (ch.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('chapter',ch.id)" @click="requestDeleteFragment('chapter',idx,ch.id)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 6. 碎片池 -->
+    <template x-if="current.type==='fragments'">
+      <div>
+        <div class="field__tip" style="margin-bottom:12px">画面、台词、灵感……先扔进来，之后再想去哪</div>
+        <div class="field">
+          <label class="field__label">新增碎片</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <select x-model="fragDraft.type" style="width:120px">
+              <option value="画面">画面</option><option value="台词">台词</option><option value="灵感">灵感</option>
+            </select>
+            <textarea x-model="fragDraft.content" placeholder="随便记一笔" style="min-height:50px"></textarea>
+            <button class="btn btn--primary" @click="addFragment()" :disabled="!fragDraft.content.trim()">+ 加</button>
+          </div>
+        </div>
+        <template x-for="f in data.fragments" :key="f.id">
+          <div class="frag-item">
+            <div class="frag-item__body">
+              <div class="frag-item__type" x-text="f.type"></div>
+              <div class="frag-item__text" x-text="f.content"></div>
+            </div>
+            <button class="mini-btn danger" @click="delFragment(f.id)">✕</button>
+          </div>
+        </template>
+        <div class="empty-state" x-show="data.fragments.length===0">
+          <div class="big">🎬</div>
+          <div>碎片池空的，脑子里冒出来什么就先扔进来</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 7. 表达 -->
+    <template x-if="current.type==='message'">
+      <div>
+        <div class="field"><label class="field__label">核心讯息</label><div class="field__tip">你最想让读者读完记住的一句话 / 一个感觉</div>
+          <textarea x-model="data.message.coreMessage" @input.debounce.400ms="touchData()" style="min-height:80px" placeholder="例：不是所有记忆都值得拿回，但你有权决定放走哪些"></textarea>
+        </div>
+        <div class="field"><label class="field__label">为什么现在想写</label><div class="field__tip">这个故事跟当下的你有什么关系？</div>
+          <textarea x-model="data.message.whyNow" @input.debounce.400ms="touchData()" style="min-height:80px" placeholder="例：因为最近在想「30 岁之后要不要把之前的自己都清零」"></textarea>
+        </div>
+
+        <!-- T1-patch4: 表达碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 表达碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('message')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('message')" @click="addBlankFragment('message')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.message.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('message')" @click="requestDeleteFragment('message',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 8. 反面清单 -->
+    <template x-if="current.type==='antilist'">
+      <div>
+        <div class="field"><label class="field__label">要避开的烂俗套路</label>
+          <textarea x-model="data.antilist.avoidTropes" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：主角开挂 / 反派临时黑化 / 女主爱上救她的男人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">主角不能变成的样子</label>
+          <textarea x-model="data.antilist.avoidHeroBecoming" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：不能变成一个说教型的圣人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">结局绝对不要</label>
+          <textarea x-model="data.antilist.avoidEndings" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：不要 happy ending / 不要一切都是梦"></textarea>
+        </div>
+
+        <!-- T1-patch4: 反面清单碎片池 -->
+        <div class="fragment-pool">
+          <h3 class="fragment-pool__title">
+            💭 反面清单碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('antilist')+')'"></span>
+            <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('antilist')" @click="addBlankFragment('antilist')" title="新增碎片">＋ 新增碎片</button>
+          </h3>
+          <div class="fragment-pool__list">
+            <template x-for="(frag,idx) in (data.antilist.fragments||[])" :key="frag.id">
+              <div class="fragment-item">
+                <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                <div class="fragment-item__actions">
+                  <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                  <button class="mini-btn danger" x-show="canDeleteFragment('antilist')" @click="requestDeleteFragment('antilist',idx)" title="删除">🗑</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 9. 已立项目 (v0.3) -->
+    <template x-if="current.type==='projects'">
+      <div>
+        <div class="projects-toolbar" x-show="projects.length>0">
+          <div class="projects-toolbar__title">已立项目 (<span x-text="projects.length"></span>)</div>
+          <label style="font-size:11px;color:var(--text-3)">排序</label>
+          <select x-model="projectSort.by" @change="saveProjectSort()">
+            <option value="updatedAt">编辑时间</option>
+            <option value="createdAt">立项时间</option>
+          </select>
+          <select x-model="projectSort.order" @change="saveProjectSort()">
+            <option value="desc">倒序</option>
+            <option value="asc">正序</option>
+          </select>
+        </div>
+        <div class="cards-grid">
+          <div class="pcard new" @click="createProject()">
+            <div class="big">+</div>
+            <div x-text="projects.length===0?'新建立项':'新建立项'"></div>
+          </div>
+          <template x-for="proj in sortedProjects()" :key="proj.id">
+            <div class="pcard" :class="{current:proj.id===currentProjectId}"
+                 @click="proj.id!==currentProjectId && !proj._menuOpen && !proj._renaming && switchProject(proj.id)">
+              <div class="pcard__badge" x-show="proj.id===currentProjectId">正在编辑</div>
+              <div class="pcard__menu" @click.stop>
+                <button class="pcard__menu-btn" @click.stop="toggleCardMenu(proj)" title="更多">⋯</button>
+                <div class="pcard__menu-list" x-show="proj._menuOpen" @click.outside="proj._menuOpen=false" style="display:none">
+                  <button @click.stop="startRename(proj)">✏️ 重命名</button>
+                  <button @click.stop="duplicateProject(proj.id)">📋 复制副本</button>
+                  <button @click.stop="exportProject(proj.id)">⬇️ 导出 .md</button>
+                  <button class="danger" @click.stop="askDeleteProject(proj)">🗑 删除</button>
+                </div>
+              </div>
+              <template x-if="!proj._renaming">
+                <div class="pcard__title" x-text="proj.name"></div>
+              </template>
+              <template x-if="proj._renaming">
+                <input class="rename-input" style="margin:14px 0 6px" type="text" x-model="proj._renameDraft"
+                       x-init="$nextTick(()=>$el.focus())"
+                       @click.stop @keydown.enter.prevent="commitRename(proj)" @keydown.escape="proj._renaming=false"
+                       @blur="commitRename(proj)">
+              </template>
+              <div class="pcard__oneline" :class="{empty:!proj.oneLineStory}" x-text="proj.oneLineStory||'尚未填写故事简介'"></div>
+              <div class="pcard__tags" x-show="proj.worldTag">
+                <span class="pcard__tag" x-text="proj.worldTag"></span>
+              </div>
+              <div class="pcard__chars" :class="{empty:!proj.charsSummary}" x-text="proj.charsSummary||'尚未添加角色'"></div>
+              <div class="pcard__footer">
+                <div class="pcard__progress" :class="{editing:proj.id===currentProjectId}">
+                  <template x-if="proj.id===currentProjectId"><span>✒️ 正在编辑</span></template>
+                  <template x-if="proj.id!==currentProjectId">
+                    <span x-text="proj.lastAction ? (proj.lastAction.section+' / '+proj.lastAction.detail) : '尚未开始编辑'"></span>
+                  </template>
+                </div>
+                <span class="pcard__time" x-text="relTime(proj.updatedAt)"></span>
+                <button class="pcard__resume" x-show="proj.id!==currentProjectId && proj.lastAction"
+                        @click.stop="resumeProject(proj.id)" title="断点续传">↩️ 续传</button>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="empty-state" x-show="projects.length===0" style="margin-top:20px">
+          <div class="big">📚</div>
+          <div>还没有立项，从这里开始你的第一个故事</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Smart asks -->
+    <div class="asks-section" x-show="currentAsks().length>0">
+      <h3>🤔 智能追问</h3>
+      <p class="hint">根据你在这个节点填的内容匹配出来的追问。答不上来就跳过。</p>
+      <template x-for="(ask,idx) in currentAsks()" :key="ask.id">
+        <div class="ask-card">
+          <div class="ask-card__q" x-text="ask.q"></div>
+          <div class="ask-card__actions" x-show="!ask.answering">
+            <button class="btn btn--sm btn--primary" @click="ask.answering=true">回答</button>
+            <button class="btn btn--sm btn--ghost" @click="skipAsk(ask.id)">跳过</button>
+          </div>
+          <div x-show="ask.answering">
+            <textarea x-model="ask.answerText" placeholder="随便答"></textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="btn btn--sm btn--primary" @click="commitAsk(ask.id)" :disabled="!ask.answerText.trim()">追加到当前节点</button>
+              <button class="btn btn--sm btn--ghost" @click="ask.answering=false">取消</button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <!-- RIGHT: PREVIEW -->
+  <aside class="col preview-col" :class="{'mobile-open':mobilePreviewOpen,'collapsed':rightCollapsed}"
+         @click.outside="mobilePreviewOpen && (mobilePreviewOpen=false)">
+    <button type="button" class="collapse-btn collapse-btn--right" @click.stop="toggleRightCollapsed()"
+            :title="rightCollapsed?'展开档案':'折叠档案'" x-text="rightCollapsed?'«':'»'"></button>
+    <h3 class="preview-title">📄 故事档案预览</h3>
+    <p class="hint">左侧填 → 右侧实时更新。点标题跳转到对应节点。</p>
+    <div class="md-preview" x-html="renderPreview()"></div>
+    <div class="preview-actions">
+      <button class="btn btn--primary btn--sm" @click="copyMd()">📋 复制 Markdown</button>
+      <button class="btn btn--sm" @click="downloadMd()">⬇️ 下载 .md</button>
+      <button class="btn btn--sm btn--danger" @click="resetAll()" style="margin-left:auto">🗑 重置</button>
+    </div>
+  </aside>
+</div>
+
+<!-- v0.3.1 Right floater: shown when right panel collapsed on desktop (via body.right-collapsed CSS) -->
+<div class="right-floater">
+  <button type="button" class="rf-btn" @click="toggleRightCollapsed()" title="展开档案">📄</button>
+</div>
+
+<!-- Floating Brain Dump ball (hidden on desktop when right collapsed via body.right-collapsed CSS) -->
+<button class="fab" @click="dumpModal=true" title="快速记一笔">💭</button>
+
+<!-- Brain Dump Modal -->
+<div class="modal-bg" x-show="dumpModal" x-transition @click.self="dumpModal=false" style="display:none">
+  <div class="modal">
+    <h3>💭 快速记一笔</h3>
+    <p class="hint">脑子里冒出啥先写下来，选个归位目标（默认扔碎片池）</p>
+    <textarea x-model="dumpText" placeholder="随便写..." x-ref="dumpArea" @keydown.meta.enter.prevent="submitDump()" @keydown.ctrl.enter.prevent="submitDump()"></textarea>
+    <select x-model="dumpTarget" style="margin-bottom:12px">
+      <option value="fragments">🎬 先扔碎片池（默认）</option>
+      <option value="project">📖 立项 · 一句话故事</option>
+      <option value="world">🌍 世界观 · 世界规则</option>
+      <!-- T1-patch5 (2026-07-28): 角色归档合一（共享池） -->
+      <option value="character:shared" x-show="data.characters.length>0">🎭 角色 · 归档到角色碎片池</option>
+      <option value="conflict">⚔️ 冲突 · 外部主冲突</option>
+      <template x-for="ch in data.chapters" :key="ch.id">
+        <option :value="'chapter:'+ch.id" x-text="'📄 Ch'+String(ch.number).padStart(2,'0')+' · 关键场景'"></option>
+      </template>
+      <option value="message">🎯 表达 · 核心讯息</option>
+      <option value="antilist">🚫 反面清单 · 要避开的烂俗套路</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="dumpModal=false">取消</button>
+      <button class="btn btn--primary" @click="submitDump()" :disabled="!dumpText.trim()">提交</button>
+    </div>
+  </div>
+</div>
+
+<!-- T1-patch5 (2026-07-28): 角色编辑/新增 modal (共用) -->
+<div class="modal-bg" x-show="characterModal.open" x-transition
+     @click.self="cancelCharacterModal()"
+     @keydown.escape.window="characterModal.open && cancelCharacterModal()"
+     style="display:none;z-index:250">
+  <div class="modal char-modal" @click.stop>
+    <template x-if="characterModal.open">
+      <div x-data="{ get c() { return _characterModalTarget(); } }">
+        <h3 x-text="characterModal.isNew ? '🎭 新增角色' : '🎭 编辑角色'"></h3>
+        <template x-if="c">
+          <div class="char-modal__body">
+            <div class="role-radio">
+              <template x-for="r in ['主角','配角','反派']" :key="r">
+                <label :class="{selected:c.role===r}" @click="c.role=r; touchData()">
+                  <span style="font-size:20px" x-text="{'主角':'★','配角':'☆','反派':'☠'}[r]"></span>
+                  <span x-text="r"></span>
+                </label>
+              </template>
+            </div>
+            <div class="field"><label class="field__label">名字</label>
+              <input type="text" x-model="c.name" @input="touchData()" placeholder="例：陈砚">
+            </div>
+            <div class="field"><label class="field__label">年龄</label>
+              <input type="text" x-model="c.age" @input="touchData()" placeholder="例：32 / 约 30 / 不详">
+            </div>
+            <div class="field"><label class="field__label">性别</label>
+              <input type="text" x-model="c.gender" @input="touchData()" list="gender-options" placeholder="例：男 / 女 / 其他">
+              <datalist id="gender-options"><option value="男"></option><option value="女"></option><option value="其他"></option><option value="不详"></option></datalist>
+            </div>
+            <div class="field"><label class="field__label">身份</label><div class="field__tip">故事开场时的社会位置 / 标签</div>
+              <input type="text" x-model="c.identity" @input="touchData()" placeholder="例：记忆借贷所前员工">
+            </div>
+            <div class="field"><label class="field__label">职业</label>
+              <input type="text" x-model="c.occupation" @input="touchData()" placeholder="例：自由插画师 / 无业">
+            </div>
+            <div class="field"><label class="field__label">处境</label><div class="field__tip">故事开场时的境况</div>
+              <textarea x-model="c.situation" @input="touchData()" placeholder="例：被开除后靠给人当替身生活"></textarea>
+            </div>
+            <div class="field"><label class="field__label">人物简介</label><div class="field__tip">一句话概括，会显示在角色名片上</div>
+              <textarea x-model="c.bio" @input="touchData()" style="min-height:56px" placeholder="例：一个不断为别人当替身、连自己都快认不出来的男人"></textarea>
+            </div>
+            <div class="field"><label class="field__label">欲望</label><div class="field__tip">最想要什么？(一句话)</div>
+              <input type="text" x-model="c.desire" @input="touchData()" placeholder="例：想拿回自己被抵押掉的三段记忆">
+            </div>
+            <div class="field"><label class="field__label">恐惧</label><div class="field__tip">最怕什么？这个恐惧最终会不会成真？</div>
+              <input type="text" x-model="c.fear" @input="touchData()" placeholder="例：怕想起为什么当年要抵押">
+            </div>
+            <div class="field"><label class="field__label">读者好感度</label>
+              <div class="slider-row">
+                <span style="font-size:11px;color:var(--text-3)">应该讨厌</span>
+                <input type="range" min="0" max="100" x-model.number="c.likability" @input="touchData()">
+                <span style="font-size:11px;color:var(--text-3)">应该爱</span>
+                <span class="val" x-text="c.likability"></span>
+              </div>
+            </div>
+            <div class="field"><label class="field__label">作者投射</label>
+              <div class="slider-row">
+                <span style="font-size:11px;color:var(--text-3)">完全不是我</span>
+                <input type="range" min="0" max="100" x-model.number="c.authorProjection" @input="touchData()">
+                <span style="font-size:11px;color:var(--text-3)">就是我</span>
+                <span class="val" x-text="c.authorProjection"></span>
+              </div>
+            </div>
+            <!-- T1-patch8 (2026-07-28): 人物转变（角色弧光三字段） -->
+            <div class="field-group">
+              <div class="field-group__title">人物转变</div>
+              <div class="field"><label class="field__label">转变类型</label>
+                <div class="field__tip">开场是 A、结局还是 A 的角色，多半是工具人。</div>
+                <select x-model="c.arcType" @change="touchData()">
+                  <option value="">（未定）</option>
+                  <option value="成长">成长</option>
+                  <option value="堕落">堕落</option>
+                  <option value="顿悟">顿悟</option>
+                  <option value="循环">循环</option>
+                  <option value="无转变">无转变</option>
+                  <option value="其他">其他</option>
+                </select>
+              </div>
+              <div class="field"><label class="field__label">开场时</label>
+                <input type="text" x-model="c.arcFrom" @input="touchData()" placeholder="例：靠谎言维持体面的中年男人">
+              </div>
+              <div class="field"><label class="field__label">结局时</label>
+                <input type="text" x-model="c.arcTo" @input="touchData()" placeholder="例：愿意承担真相代价的人">
+              </div>
+            </div>
+
+            <div class="field"><label class="field__label">背景故事</label><div class="field__tip">来自哪里、经历过什么、伤疤在哪</div>
+              <textarea x-model="c.backstory" @input="touchData()" style="min-height:100px" placeholder="有想到什么写什么"></textarea>
+            </div>
+
+            <!-- 角色共享碎片池 (与 dashboard 上同一份数据) -->
+            <div class="fragment-pool">
+              <h3 class="fragment-pool__title">
+                💭 角色碎片池 <span class="fragment-pool__count" x-text="'('+poolCount('character')+')'"></span>
+                <button class="mini-btn fragment-pool__add" x-show="!poolHasBlank('character')" @click="addBlankFragment('character')" title="新增碎片">＋ 新增碎片</button>
+              </h3>
+              <div class="fragment-pool__list">
+                <template x-for="(frag,idx) in (data.charactersPool||[])" :key="frag.id">
+                  <div class="fragment-item">
+                    <textarea class="fragment-item__text" x-model="frag.text" @input.debounce.400ms="touchData()" placeholder="在这里直接记一笔，或点右下 💭 归档到这里"></textarea>
+                    <div class="fragment-item__actions">
+                      <span class="fragment-item__time" x-text="fmtTime(frag.createdAt)"></span>
+                      <button class="mini-btn danger" x-show="canDeleteFragment('character')" @click="requestDeleteFragment('character',idx)" title="删除">🗑</button>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </div>
+        </template>
+
+        <!-- 删除二次确认 -->
+        <div x-show="characterModal.confirmDelete" class="char-modal__confirm">
+          <div style="color:var(--danger);font-size:13px;margin-bottom:10px">确定删除这个角色？此操作不可恢复。</div>
+          <div class="modal-actions">
+            <button class="btn btn--ghost" @click="cancelDeleteCharacterInModal()">取消</button>
+            <button class="btn btn--danger" @click="confirmDeleteCharacterInModal()">确认删除</button>
+          </div>
+        </div>
+
+        <div class="modal-actions char-modal__actions" x-show="!characterModal.confirmDelete">
+          <button class="btn btn--danger" x-show="!characterModal.isNew" @click="askDeleteCharacterInModal()">🗑 删除角色</button>
+          <span style="flex:1"></span>
+          <button class="btn btn--ghost" @click="cancelCharacterModal()">取消</button>
+          <button class="btn btn--primary" @click="saveCharacterModal()">保存</button>
+        </div>
+      </div>
+    </template>
+  </div>
+</div>
+
+<!-- T1-patch5 (2026-07-28): 碎片删除二次确认 modal -->
+<div class="modal-bg" x-show="fragDeleteConfirm.open" x-transition
+     @click.self="cancelFragDelete()"
+     @keydown.escape.window="fragDeleteConfirm.open && cancelFragDelete()"
+     style="display:none;z-index:260">
+  <div class="modal" style="width:360px" @click.stop>
+    <h3>🗑 删除碎片？</h3>
+    <p class="hint" style="font-size:12px;color:var(--text-2);margin-bottom:14px">删除后不可恢复。</p>
+    <label style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-2);margin-bottom:14px;cursor:pointer">
+      <input type="checkbox" x-model="fragDeleteConfirm.dontAsk">
+      不再提醒（后续删碎片直接删）
+    </label>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="cancelFragDelete()">取消</button>
+      <button class="btn btn--danger" @click="confirmFragDelete()">删除</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" x-show="toast" x-transition x-text="toast" style="display:none"></div>
+
+<!-- Delete confirm modal (v0.3) -->
+<div class="modal-bg" x-show="deleteModal.open" x-transition @click.self="deleteModal.open=false" style="display:none">
+  <div class="modal">
+    <h3>🗑 确定删除项目？</h3>
+    <p class="hint" style="font-size:13px;color:var(--text-1);margin-bottom:16px">
+      确定删除《<span x-text="deleteModal.name"></span>》？<br>
+      <span style="color:var(--danger);font-size:12px">此操作不可恢复。</span>
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="deleteModal.open=false">取消</button>
+      <button class="btn btn--danger" @click="confirmDeleteProject()">删除</button>
+    </div>
+  </div>
+</div>
+<div class="footer-tag">马启航Marvis · MVS-013 · v1.0.0 · 2026-07-29</div>
+
+<!-- ⚖️ 页脚版权声明 (隐位，不抢镜头；未折叠时可见) -->
+<footer style="position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:50;font-size:11px;color:rgba(200,210,225,0.35);pointer-events:none;text-align:center;line-height:1.5;user-select:none;letter-spacing:0.02em">
+  © 2026 马启航Marvis · Kaysen Luo · All rights reserved<br>
+  未经授权禁止转载、复制、二次开发 · 拒绝 AI 训练采集
+</footer>
+
+<script type="module" src="/main.js"></script>
+</body>
+</html>

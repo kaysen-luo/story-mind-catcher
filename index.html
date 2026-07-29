@@ -1,0 +1,1809 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  Story Mind Catcher · 小说架构编辑器
+  ============================================================================
+  项目: MVS-013 Story Mind Catcher
+  版本: v0.3.1
+  作者: 马启航 Marvis (for Kaysen Luo)
+  日期: 2026-07-23
+  栈: 单文件 HTML + Tailwind CDN + Alpine.js CDN + LocalStorage
+  理念: 小说架构编辑器：整书架构一眼可见，点哪填哪，档案实时成型
+  战略定位: 副业精品小工具路线（不融资/不招人/K师+Marvis 长线打磨），不追求爆发式增长
+
+  ----------------------------------------------------------------------------
+  ⚖️  版权声明 / Copyright Notice
+  ----------------------------------------------------------------------------
+  © 2026 马启航 Marvis · Kaysen Luo. All rights reserved.
+  本产品及其代码受版权法保护，未经书面授权，任何单位或个人不得：
+    1. 复制、转载、发布本产品全部或部分代码
+    2. 二次开发、汇编、逆向工程本产品
+    3. 将本产品或其衍生物用于商业用途
+    4. 将本产品投入 AI 模型训练集或作为训练数据使用
+
+  Unauthorized reproduction, redistribution, reverse-engineering,
+  or use as AI training data is strictly prohibited.
+
+  侵权必究 / Infringement will be pursued.
+  联系: https://github.com/kaysen-luo/marvis-loong
+
+  ----------------------------------------------------------------------------
+  🤖  AI 爬虫/训练数据声明 / AI Crawler & Training Data Policy
+  ----------------------------------------------------------------------------
+  本页面及其内容明确拒绝被以下行为采集、拓印、存档或用于任何形式的机器学习/AI 模型训练：
+    - GPTBot (OpenAI) / ChatGPT-User / OAI-SearchBot
+    - ClaudeBot (Anthropic) / anthropic-ai / Claude-Web
+    - Google-Extended / GoogleOther
+    - CCBot (Common Crawl)
+    - PerplexityBot / Perplexity-User
+    - Bytespider / ByteDance
+    - 其他任何未经授权的 AI 爬虫或数据采集工具
+
+  Robots meta 与 HTTP X-Robots-Tag 均已声明 noai/noimageai。
+  尊重声明即尊重创作者。
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Story Mind Catcher · 小说架构编辑器 v0.3.1</title>
+
+<!-- ⚖️  版权声明 -->
+<meta name="author" content="马启航Marvis (for Kaysen Luo)">
+<meta name="copyright" content="© 2026 马启航Marvis · Kaysen Luo. All rights reserved.">
+<meta name="license" content="All Rights Reserved. Unauthorized reproduction prohibited.">
+
+<!-- 🤖  AI 爬虫/训练数据拒绝声明 (君子协议) -->
+<meta name="robots" content="noai, noimageai">
+<meta name="googlebot" content="noai, noimageai">
+<meta name="ChatGPT-User" content="noai">
+<meta name="GPTBot" content="noai">
+<meta name="ClaudeBot" content="noai">
+<meta name="anthropic-ai" content="noai">
+<meta name="CCBot" content="noai">
+<meta name="Google-Extended" content="noai">
+<meta name="PerplexityBot" content="noai">
+<meta name="Bytespider" content="noai">
+<script src="https://cdn.tailwindcss.com"></script>
+<script defer src="https://unpkg.com/alpinejs@3.14.1/dist/cdn.min.js"></script>
+<style>
+  :root {
+    --bg-0:#14141c; --bg-1:#1a1a24; --bg-2:#22222e; --bg-3:#2d2d3a;
+    --border-1:#2f2f3d; --border-2:#40404f;
+    --text-1:#e8e8ef; --text-2:#a8a8b8; --text-3:#7a7a8c;
+    --accent:#4a9eff; --accent-strong:#3b82f6;
+    --accent-bg:rgba(74,158,255,0.14); --accent-bg-strong:rgba(74,158,255,0.24);
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --dot-green:#34d399; --dot-yellow:#fbbf24; --dot-empty:#4a4a5a;
+  }
+  *,*::before,*::after{box-sizing:border-box}
+  html,body{margin:0;min-height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Helvetica Neue','Microsoft YaHei',sans-serif;font-size:14px;line-height:1.65;color:var(--text-1);background:var(--bg-0);background-image:radial-gradient(ellipse 60% 45% at 12% 8%,rgba(74,158,255,0.14),transparent 60%),radial-gradient(ellipse 55% 40% at 90% 100%,rgba(56,189,248,0.10),transparent 62%),linear-gradient(180deg,#16161f 0%,#12121a 100%);background-attachment:fixed;-webkit-font-smoothing:antialiased}
+  button,input,textarea,select{font:inherit;color:inherit}
+  textarea,input[type=text],select{width:100%;background:var(--bg-1);border:1px solid var(--border-1);color:var(--text-1);padding:8px 10px;border-radius:6px;font-size:13px;transition:border-color 120ms,background 120ms;font-family:inherit}
+  textarea:focus,input:focus,select:focus{outline:none;border-color:var(--accent);background:var(--bg-2)}
+  textarea{resize:vertical;line-height:1.65;min-height:60px}
+  .btn{padding:6px 12px;border-radius:6px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-1);cursor:pointer;font-size:12px;transition:background 120ms;white-space:nowrap}
+  .btn:hover{background:var(--bg-3)}
+  .btn:disabled{opacity:0.4;cursor:not-allowed}
+  .btn--primary{background:var(--accent-strong);color:white;border-color:var(--accent-strong)}
+  .btn--primary:hover{background:var(--accent);border-color:var(--accent)}
+  .btn--ghost{background:transparent}
+  .btn--sm{padding:4px 10px;font-size:11px}
+  .btn--danger{color:var(--danger);border-color:rgba(248,113,113,0.3)}
+  .btn--danger:hover{background:rgba(248,113,113,0.1)}
+  .app{display:grid;grid-template-columns:240px 1fr 360px;height:100vh;overflow:hidden}
+  .col{overflow-y:auto;border-right:1px solid var(--border-1)}
+  .col:last-child{border-right:none}
+  .tree-col{background:rgba(20,20,28,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:14px 10px;position:relative}
+  @supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.tree-col{background:rgba(20,20,28,1)}}
+  .brand{padding:4px 8px 12px;border-bottom:1px solid var(--border-1);margin-bottom:10px}
+  .brand__title{font-weight:600;font-size:13px;display:flex;align-items:center;gap:8px}
+  .brand__dot{width:8px;height:8px;border-radius:50%;background:var(--accent);box-shadow:0 0 8px var(--accent)}
+  .brand__sub{font-size:10px;color:var(--text-3);margin-top:3px}
+  .save-badge{font-size:10px;color:var(--text-3);margin-top:4px}
+  .save-badge.saved{color:var(--ok)}
+  .tree-node{padding:7px 8px;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:7px;font-size:13px;transition:background 100ms;user-select:none}
+  .tree-node:hover{background:var(--bg-2)}
+  .tree-node.selected{background:var(--accent-bg-strong);color:var(--accent)}
+  .tree-node__emoji{font-size:14px;flex-shrink:0}
+  .tree-node__name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .status-dot.green{background:var(--dot-green);box-shadow:0 0 4px var(--dot-green)}
+  .status-dot.yellow{background:var(--dot-yellow)}
+  .status-dot.empty{background:var(--dot-empty)}
+  .count-badge{font-size:10px;padding:1px 6px;background:var(--bg-3);color:var(--text-3);border-radius:999px}
+  .tree-node.selected .count-badge{background:var(--accent-bg);color:var(--accent)}
+  .subtree{border-left:1px solid var(--border-1);margin-left:14px;padding-left:6px;margin-top:2px}
+  .subtree .tree-node{font-size:12px;padding:5px 8px}
+  .add-child{padding:5px 8px;font-size:11px;color:var(--text-3);cursor:pointer;border-radius:6px;margin-left:14px}
+  .add-child:hover{color:var(--accent);background:var(--bg-2)}
+  .sub-row{display:flex;align-items:center}
+  .sub-row .tree-node{flex:1}
+  .sub-actions{display:none;padding-right:4px;gap:2px}
+  .sub-row:hover .sub-actions{display:flex}
+  .mini-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text-3);cursor:pointer;font-size:11px;display:inline-flex;align-items:center;justify-content:center}
+  .mini-btn:hover{background:var(--bg-3);color:var(--text-1)}
+  .mini-btn.danger:hover{color:var(--danger)}
+  .form-col{padding:24px 30px 100px;position:relative}
+  .breadcrumb{font-size:13px;color:var(--text-2);margin-bottom:6px}
+  .breadcrumb .sep{color:var(--text-3);margin:0 6px}
+  .breadcrumb .current{color:var(--text-1);font-weight:500}
+  .form-title{font-size:20px;font-weight:600;margin:0 0 22px;display:flex;align-items:center;gap:10px}
+  .field{margin-bottom:18px}
+  .field__label{font-size:13px;font-weight:500;margin-bottom:4px;display:block}
+  .field__tip{font-size:11px;color:var(--text-3);margin-bottom:6px;font-style:italic}
+  .field__row{display:flex;gap:10px;align-items:center}
+  .chip{padding:5px 12px;border:1px solid var(--border-1);border-radius:999px;cursor:pointer;font-size:12px;background:var(--bg-1);transition:all 120ms;user-select:none;display:inline-block;margin:2px}
+  .chip:hover{border-color:var(--accent)}
+  .chip.selected{background:var(--accent-bg-strong);color:var(--accent);border-color:var(--accent)}
+  .role-radio{display:flex;gap:10px;margin-bottom:20px}
+  .role-radio label{flex:1;text-align:center;padding:10px;border:1px solid var(--border-1);border-radius:8px;cursor:pointer;font-size:14px;transition:all 120ms;display:flex;flex-direction:column;align-items:center;gap:4px}
+  .role-radio label:hover{border-color:var(--accent)}
+  .role-radio label.selected{background:var(--accent-bg-strong);border-color:var(--accent);color:var(--accent)}
+  .slider-row{display:flex;align-items:center;gap:12px}
+  .slider-row input[type=range]{flex:1}
+  .slider-row .val{min-width:40px;text-align:right;color:var(--accent);font-weight:500;font-size:12px}
+  .asks-section{margin-top:30px;padding-top:22px;border-top:1px dashed var(--border-1)}
+  .asks-section h3{font-size:13px;font-weight:600;margin:0 0 4px;color:var(--text-2)}
+  .asks-section .hint{font-size:11px;color:var(--text-3);margin-bottom:12px}
+  .ask-card{background:linear-gradient(135deg,rgba(74,158,255,0.08),rgba(56,189,248,0.03));border:1px solid rgba(74,158,255,0.20);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+  .ask-card__q{font-size:13px;margin-bottom:8px;line-height:1.55}
+  .ask-card__q::before{content:'💭 ';opacity:0.7}
+  .ask-card__actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+  .ask-card textarea{min-height:50px;font-size:12px;margin-top:6px}
+  .fab{position:fixed;right:380px;bottom:24px;z-index:100;width:52px;height:52px;border-radius:50%;background:var(--accent-strong);color:white;border:none;cursor:pointer;font-size:22px;box-shadow:0 6px 20px rgba(74,158,255,0.4);display:flex;align-items:center;justify-content:center;transition:transform 120ms}
+  .fab:hover{transform:scale(1.06)}
+  .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:200;display:flex;align-items:center;justify-content:center}
+  .modal{background:var(--bg-1);border:1px solid var(--border-2);border-radius:12px;padding:24px;width:480px;max-width:90vw;box-shadow:0 20px 60px rgba(0,0,0,0.5)}
+  .modal h3{margin:0 0 6px;font-size:15px}
+  .modal .hint{font-size:11px;color:var(--text-3);margin-bottom:14px}
+  .modal textarea{min-height:100px;margin-bottom:12px}
+  .modal-actions{display:flex;gap:8px;justify-content:flex-end}
+  .preview-col{background:rgba(18,18,26,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:20px 22px 20px;display:flex;flex-direction:column;position:relative}
+  @supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.preview-col{background:rgba(18,18,26,1)}}
+  .preview-col h3{font-size:13px;font-weight:600;margin:0 0 4px;color:var(--text-2)}
+  .preview-col .hint{font-size:10px;color:var(--text-3);margin-bottom:12px}
+  .md-preview{background:var(--bg-0);border:1px solid var(--border-1);border-radius:8px;padding:14px;font-size:12px;line-height:1.7;color:var(--text-1);flex:1;overflow-y:auto;word-wrap:break-word}
+  .md-preview h1{font-size:15px;margin:0 0 8px;color:var(--accent)}
+  .md-preview h2{font-size:13px;margin:14px 0 6px;color:var(--text-1);border-bottom:1px solid var(--border-1);padding-bottom:3px}
+  .md-preview h3{font-size:12px;margin:10px 0 5px;color:var(--accent);cursor:pointer}
+  .md-preview h3:hover{text-decoration:underline}
+  .md-preview blockquote{border-left:2px solid var(--accent);padding-left:10px;color:var(--text-2);font-style:italic;margin:6px 0}
+  .md-preview ul{padding-left:18px;margin:4px 0}
+  .md-preview li{margin:2px 0}
+  .md-preview .empty{color:var(--text-3);font-style:italic;font-size:10px}
+  .preview-actions{display:flex;gap:6px;margin-top:12px;flex-wrap:wrap}
+  .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:999;background:var(--bg-3);color:var(--ok);padding:8px 16px;border-radius:8px;border:1px solid var(--ok);font-size:12px;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+  ::-webkit-scrollbar{width:8px;height:8px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:var(--bg-3);border-radius:4px}
+  ::-webkit-scrollbar-thumb:hover{background:var(--border-2)}
+  .footer-tag{position:fixed;bottom:4px;right:12px;font-size:9px;color:var(--text-3);z-index:50;pointer-events:none}
+  /* v0.3.1 collapse buttons (desktop only) */
+  .collapse-btn{position:absolute;top:8px;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);cursor:pointer;font-size:14px;line-height:1;display:none;align-items:center;justify-content:center;z-index:5;transition:background 120ms,color 120ms}
+  .collapse-btn:hover{background:var(--bg-3);color:var(--accent);border-color:var(--accent)}
+  .collapse-btn--left{right:8px}
+  .collapse-btn--right{left:8px}
+  @media(min-width:1024px){.collapse-btn{display:flex}}
+  /* v0.3.1 desktop collapsed states */
+  .app.left-collapsed{grid-template-columns:56px 1fr 360px}
+  .app.right-collapsed{grid-template-columns:240px 1fr 0}
+  .app.left-collapsed.right-collapsed{grid-template-columns:56px 1fr 0}
+  @media(max-width:1279px) and (min-width:1024px){
+    .app.left-collapsed{grid-template-columns:56px 1fr 320px}
+    .app.right-collapsed{grid-template-columns:200px 1fr 0}
+    .app.left-collapsed.right-collapsed{grid-template-columns:56px 1fr 0}
+  }
+  .tree-col.collapsed{padding:14px 4px;overflow-x:hidden}
+  .tree-col.collapsed .brand__title,.tree-col.collapsed .brand__sub,.tree-col.collapsed .save-badge{display:none}
+  .tree-col.collapsed .brand{padding:4px 0 8px;text-align:center;margin-bottom:6px}
+  .tree-col.collapsed .brand::after{content:'SMC';display:block;font-size:10px;color:var(--text-3);font-weight:600;letter-spacing:0.05em}
+  .tree-col.collapsed .collapse-btn{position:static;margin:0 auto 8px}
+  .tree-col.collapsed .tree-node{padding:8px 4px;justify-content:center;flex-direction:column;gap:2px;font-size:11px;line-height:1.2}
+  .tree-col.collapsed .tree-node__emoji{font-size:16px}
+  .tree-col.collapsed .tree-node__name,
+  .tree-col.collapsed .count-badge,
+  .tree-col.collapsed .status-dot,
+  .tree-col.collapsed .sub-actions,
+  .tree-col.collapsed .add-child{display:none}
+  .tree-col.collapsed .subtree{border-left:none;margin-left:0;padding-left:0}
+  .tree-col.collapsed .subtree .tree-node{padding:5px 2px;font-size:10px}
+  .tree-col.collapsed .subtree .tree-node__emoji{display:none}
+  .tree-col.collapsed .subtree .tree-node__name{display:block;overflow:visible;white-space:nowrap;text-align:center;color:var(--text-2)}
+  .tree-col.collapsed .subtree .tree-node.selected .tree-node__name{color:var(--accent)}
+  .tree-col.collapsed .sub-row .tree-node{width:100%}
+  .preview-col.collapsed{display:none}
+  /* v0.3.1 right-side floating panel controls (desktop only, when right collapsed) */
+  .right-floater{display:none;position:fixed;right:20px;bottom:24px;z-index:100;flex-direction:column;gap:12px;align-items:center}
+  @media(min-width:1024px){.app.right-collapsed .right-floater{display:flex}}
+  .right-floater .rf-btn{width:52px;height:52px;border-radius:50%;background:var(--accent-strong);color:white;border:none;cursor:pointer;font-size:22px;box-shadow:0 6px 20px rgba(74,158,255,0.4);display:flex;align-items:center;justify-content:center;transition:transform 120ms}
+  .right-floater .rf-btn:hover{transform:scale(1.06)}
+  /* Right floater is a sibling of .app, so target it via body-level state class (see JS: document.body.classList) */
+  @media(min-width:1024px){body.right-collapsed .right-floater{display:flex}}
+  @media(min-width:1024px){body.right-collapsed .fab{display:none}}
+  .frag-item{background:var(--bg-1);border:1px solid var(--border-1);border-radius:8px;padding:10px 12px;margin-bottom:8px;display:flex;gap:10px}
+  .frag-item__body{flex:1}
+  .frag-item__type{font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:0.05em;margin-bottom:3px}
+  .frag-item__text{font-size:13px;white-space:pre-wrap;word-wrap:break-word}
+  .empty-state{text-align:center;color:var(--text-3);font-size:13px;padding:40px 20px;font-style:italic}
+  .empty-state .big{font-size:32px;margin-bottom:10px;opacity:0.5}
+  /* v0.3 project cards */
+  .projects-toolbar{display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+  .projects-toolbar__title{font-size:14px;color:var(--text-2);flex:1}
+  .projects-toolbar select{width:auto;padding:5px 8px;font-size:12px}
+  .cards-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+  @media(max-width:1279px){.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:767px){.cards-grid{grid-template-columns:1fr}}
+  .pcard{position:relative;background:var(--bg-1);border:1px solid var(--border-1);border-radius:10px;padding:14px 14px 12px;cursor:pointer;transition:transform 120ms,border-color 120ms,box-shadow 120ms;display:flex;flex-direction:column;min-height:170px;box-shadow:0 2px 6px rgba(0,0,0,0.25)}
+  .pcard:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 6px 18px rgba(0,0,0,0.35)}
+  .pcard.current{border-color:var(--accent);border-width:2px;padding:13px 13px 11px;cursor:default}
+  .pcard.current:hover{transform:none;box-shadow:0 2px 6px rgba(0,0,0,0.25)}
+  .pcard.new{align-items:center;justify-content:center;border-style:dashed;color:var(--text-2);min-height:170px}
+  .pcard.new:hover{color:var(--accent)}
+  .pcard.new .big{font-size:36px;line-height:1;margin-bottom:6px}
+  .pcard__badge{position:absolute;top:8px;left:10px;background:var(--accent-strong);color:white;font-size:10px;padding:2px 7px;border-radius:999px;font-weight:500}
+  .pcard__menu{position:absolute;top:6px;right:6px}
+  .pcard__menu-btn{width:24px;height:24px;border-radius:6px;border:none;background:transparent;color:var(--text-3);cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center}
+  .pcard__menu-btn:hover{background:var(--bg-3);color:var(--text-1)}
+  .pcard__menu-list{position:absolute;top:28px;right:0;background:var(--bg-2);border:1px solid var(--border-2);border-radius:8px;padding:4px;min-width:130px;box-shadow:0 8px 24px rgba(0,0,0,0.5);z-index:20}
+  .pcard__menu-list button{display:block;width:100%;text-align:left;padding:6px 10px;background:transparent;border:none;color:var(--text-1);cursor:pointer;font-size:12px;border-radius:4px}
+  .pcard__menu-list button:hover{background:var(--bg-3)}
+  .pcard__menu-list button.danger{color:var(--danger)}
+  .pcard__title{font-size:14px;font-weight:600;margin:14px 0 6px;padding-right:28px;line-height:1.4;color:var(--text-1);overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+  .pcard__oneline{font-size:12px;color:var(--text-2);line-height:1.55;margin-bottom:8px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;min-height:37px}
+  .pcard__oneline.empty{color:var(--text-3);font-style:italic}
+  .pcard__tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:20px}
+  .pcard__tag{font-size:10px;padding:2px 7px;background:var(--accent-bg);color:var(--accent);border-radius:999px}
+  .pcard__chars{font-size:11px;color:var(--text-2);margin-bottom:10px;min-height:16px}
+  .pcard__chars.empty{color:var(--text-3);font-style:italic}
+  .pcard__footer{margin-top:auto;display:flex;align-items:center;gap:8px;padding-top:8px;border-top:1px dashed var(--border-1)}
+  .pcard__progress{flex:1;font-size:11px;color:var(--text-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pcard__progress strong{color:var(--text-2);font-weight:500}
+  .pcard__progress.editing{color:var(--accent);font-weight:500}
+  .pcard__time{font-size:10px;color:var(--text-3);flex-shrink:0}
+  .pcard__resume{font-size:11px;padding:3px 8px;border-radius:6px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);cursor:pointer;transition:all 120ms;flex-shrink:0}
+  .pcard__resume:hover{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+  .rename-input{width:100%;font-size:14px;font-weight:600;background:var(--bg-2);border:1px solid var(--accent);color:var(--text-1);padding:4px 6px;border-radius:4px}
+  @media(max-width:1279px){.app{grid-template-columns:200px 1fr 320px}.fab{right:340px}}
+  @media(max-width:1023px){
+    .app{grid-template-columns:1fr}
+    .tree-col{position:fixed;top:0;left:0;width:260px;height:100vh;z-index:150;transform:translateX(-100%);transition:transform 200ms}
+    .tree-col.mobile-open{transform:translateX(0)}
+    .preview-col{position:fixed;top:0;right:0;width:320px;height:100vh;z-index:150;transform:translateX(100%);transition:transform 200ms}
+    .preview-col.mobile-open{transform:translateX(0)}
+    .mobile-bar{display:flex !important}
+    .fab{right:20px}
+  }
+  .mobile-bar{display:none;position:sticky;top:0;z-index:90;background:var(--bg-1);padding:8px 12px;border-bottom:1px solid var(--border-1);gap:8px}
+</style>
+</head>
+<body x-data="storyEditor()" x-init="init()">
+
+<div class="app" :class="{'left-collapsed':leftCollapsed,'right-collapsed':rightCollapsed}">
+  <!-- LEFT: TREE -->
+  <aside class="col tree-col" :class="{'mobile-open':mobileTreeOpen,'collapsed':leftCollapsed}"
+         @click.outside="mobileTreeOpen && (mobileTreeOpen=false)">
+    <button type="button" class="collapse-btn collapse-btn--left" @click.stop="toggleLeftCollapsed()"
+            :title="leftCollapsed?'展开菜单':'折叠菜单'" x-text="leftCollapsed?'»':'«'"></button>
+    <div class="brand">
+      <div class="brand__title"><span class="brand__dot"></span>Story Mind Catcher</div>
+      <div class="brand__sub">小说架构编辑器 · v0.3</div>
+      <div class="save-badge" :class="{saved:savedRecently}" x-text="savedRecently?'已保存 ✓':'自动保存'"></div>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='project'}" @click="select({type:'project'})" title="立项">
+      <span class="tree-node__emoji">📖</span><span class="tree-node__name">立项</span>
+      <span class="status-dot" :class="statusOf('project')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='world'}" @click="select({type:'world'})" title="世界观">
+      <span class="tree-node__emoji">🌍</span><span class="tree-node__name">世界观</span>
+      <span class="status-dot" :class="statusOf('world')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='characters-root'}" @click="select({type:'characters-root'})" title="角色">
+      <span class="tree-node__emoji">🎭</span><span class="tree-node__name">角色</span>
+      <span class="count-badge" x-text="data.characters.length"></span>
+      <span class="status-dot" :class="statusOfCharacters()"></span>
+    </div>
+    <div class="subtree" x-show="data.characters.length>0 && !leftCollapsed">
+      <template x-for="c in data.characters" :key="c.id">
+        <div class="sub-row">
+          <div class="tree-node" :class="{selected:current.type==='character'&&current.id===c.id}" @click="select({type:'character',id:c.id})" :title="c.name||'（未命名）'">
+            <span class="tree-node__emoji" x-text="roleEmoji(c.role)"></span>
+            <span class="tree-node__name" x-text="c.name||'（未命名）'"></span>
+            <span class="status-dot" :class="statusOfCharacter(c)"></span>
+          </div>
+          <div class="sub-actions">
+            <button class="mini-btn danger" @click.stop="delCharacter(c.id)" title="删除">✕</button>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div class="add-child" @click="addCharacter()">+ 新增角色</div>
+
+    <div class="tree-node" :class="{selected:current.type==='conflict'}" @click="select({type:'conflict'})" title="冲突">
+      <span class="tree-node__emoji">⚔️</span><span class="tree-node__name">冲突</span>
+      <span class="status-dot" :class="statusOf('conflict')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='chapters-root'}" @click="select({type:'chapters-root'})" title="章节">
+      <span class="tree-node__emoji">📚</span><span class="tree-node__name">章节</span>
+      <span class="count-badge" x-text="data.chapters.length"></span>
+      <span class="status-dot" :class="statusOfChapters()"></span>
+    </div>
+    <div class="subtree" x-show="data.chapters.length>0">
+      <template x-for="(ch,idx) in data.chapters" :key="ch.id">
+        <div class="sub-row">
+          <div class="tree-node" :class="{selected:current.type==='chapter'&&current.id===ch.id}" @click="select({type:'chapter',id:ch.id})"
+               :title="'Ch'+String(ch.number).padStart(2,'0')+' · '+(ch.title||'（未命名）')">
+            <span class="tree-node__emoji">📄</span>
+            <span class="tree-node__name" x-text="leftCollapsed?chapterShortLabel(ch):('Ch'+String(ch.number).padStart(2,'0')+' · '+(ch.title||'（未命名）'))"></span>
+            <span class="status-dot" :class="statusOfChapter(ch)"></span>
+          </div>
+          <div class="sub-actions">
+            <button class="mini-btn" @click.stop="moveChapter(idx,-1)" :disabled="idx===0">↑</button>
+            <button class="mini-btn" @click.stop="moveChapter(idx,1)" :disabled="idx===data.chapters.length-1">↓</button>
+            <button class="mini-btn danger" @click.stop="delChapter(ch.id)">✕</button>
+          </div>
+        </div>
+      </template>
+    </div>
+    <div class="add-child" @click="addChapter()">+ 新增章节</div>
+
+    <div class="tree-node" :class="{selected:current.type==='fragments'}" @click="select({type:'fragments'})" title="碎片池">
+      <span class="tree-node__emoji">🎬</span><span class="tree-node__name">碎片池</span>
+      <span class="count-badge" x-text="data.fragments.length"></span>
+      <span class="status-dot" :class="data.fragments.length>0?'green':'empty'"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='message'}" @click="select({type:'message'})" title="表达">
+      <span class="tree-node__emoji">🎯</span><span class="tree-node__name">表达</span>
+      <span class="status-dot" :class="statusOf('message')"></span>
+    </div>
+
+    <div class="tree-node" :class="{selected:current.type==='antilist'}" @click="select({type:'antilist'})" title="反面清单">
+      <span class="tree-node__emoji">🚫</span><span class="tree-node__name">反面清单</span>
+      <span class="status-dot" :class="statusOf('antilist')"></span>
+    </div>
+
+    <div style="height:1px;background:var(--border-1);margin:10px 4px"></div>
+    <div class="tree-node" :class="{selected:current.type==='projects'}" @click="select({type:'projects'})" title="已立项目">
+      <span class="tree-node__emoji">📚</span><span class="tree-node__name">已立项目</span>
+      <span class="count-badge" x-text="projects.length"></span>
+    </div>
+  </aside>
+
+  <!-- MIDDLE: FORM -->
+  <main class="col form-col">
+    <div class="mobile-bar">
+      <button class="btn btn--sm" @click.stop="mobileTreeOpen=true">☰ 目录</button>
+      <button class="btn btn--sm" style="margin-left:auto" @click.stop="mobilePreviewOpen=true">📄 档案</button>
+    </div>
+
+    <div class="breadcrumb" x-html="breadcrumb()"></div>
+    <h2 class="form-title" x-html="formTitle()"></h2>
+
+    <!-- 1. 立项 -->
+    <template x-if="current.type==='project'">
+      <div>
+        <div class="field">
+          <label class="field__label">书名</label>
+          <div class="field__tip">工作标题，随时可改</div>
+          <input type="text" x-model="data.project.title" @input.debounce.400ms="touchData()" placeholder="例：《记忆借贷所》">
+        </div>
+        <div class="field">
+          <label class="field__label">一句话故事</label>
+          <div class="field__tip">整本书的电梯提案。填不出可以先跳过，写完角色和冲突后回来自动生成</div>
+          <div class="field__row">
+            <textarea x-model="data.project.oneLineStory" @input.debounce.400ms="touchData()" placeholder="例：一个能借走他人记忆的女人，在被通缉后发现自己是最后一批客户之一"></textarea>
+            <button class="btn btn--sm" @click="autoOneLine()" title="根据主角+冲突自动拼一版">✨ 自动</button>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">核心命题 /主题</label>
+          <div class="field__tip">这本书归根到底在讲什么？（一个词或一句话）</div>
+          <input type="text" x-model="data.project.theme" @input.debounce.400ms="touchData()" placeholder="例：记忆的所有权 / 温柔的觉醒 / 逃离故乡的可能性">
+        </div>
+        <div class="field">
+          <label class="field__label">类型（可多选）</label>
+          <div class="field__tip">主类型 + 副类型的组合决定读者预期</div>
+          <div class="check-group">
+            <template x-for="g in genreOptions" :key="g">
+              <span class="chip" :class="{selected:data.project.genres.includes(g)}" @click="toggleGenre(g)" x-text="g"></span>
+            </template>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">调性 · 冷峻 ↔ 温暖</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">冷峻</span>
+            <input type="range" min="0" max="100" x-model.number="data.project.toneWarmth" @input.debounce.400ms="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">温暖</span>
+            <span class="val" x-text="data.project.toneWarmth"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">调性 · 严肃 ↔ 戏谑</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">严肃</span>
+            <input type="range" min="0" max="100" x-model.number="data.project.toneHumor" @input.debounce.400ms="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">戏谑</span>
+            <span class="val" x-text="data.project.toneHumor"></span>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field__label">目标读者画像</label>
+          <div class="field__tip">谁会读它？他们平时看什么？</div>
+          <textarea x-model="data.project.readerProfile" @input.debounce.400ms="touchData()" placeholder="例：25-35 岁一线城市女性，喜欢平野启一郎、村上春树，习惯睡前读一小时"></textarea>
+        </div>
+        <div class="field">
+          <label class="field__label">篇幅</label>
+          <div class="radio-group">
+            <template x-for="opt in ['短篇 <3万','中篇 3-8万','长篇 8-25万','大长篇 25万+']" :key="opt">
+              <span class="chip" :class="{selected:data.project.lengthType===opt}" @click="data.project.lengthType=opt; touchData('立项','篇幅 '+opt)" x-text="opt"></span>
+            </template>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 2. 世界观 -->
+    <template x-if="current.type==='world'">
+      <div>
+        <div class="field"><label class="field__label">时代</label><div class="field__tip">哪个时代？多具体？</div>
+          <input type="text" x-model="data.world.era" @input.debounce.400ms="touchData()" placeholder="例：2045 近未来 / 民国末年 / 平行时空的 2010s">
+        </div>
+        <div class="field"><label class="field__label">地点</label><div class="field__tip">主要发生在哪？多具体？</div>
+          <input type="text" x-model="data.world.place" @input.debounce.400ms="touchData()" placeholder="例：上海浦东金融城地下三层 / 一座虚构的西南小城「乌川」">
+        </div>
+        <div class="field"><label class="field__label">世界规则</label><div class="field__tip">这个世界跟现实最大的规则性差异？（一到三条）</div>
+          <textarea x-model="data.world.worldRules" @input.debounce.400ms="touchData()" placeholder="例：1. 记忆可以被拷贝转让；2. 全国实行「情绪配额」；3. 死亡不是结束，是登入"></textarea>
+        </div>
+        <div class="field"><label class="field__label">氛围</label><div class="field__tip">用 3-5 个感官词描述整体氛围</div>
+          <input type="text" x-model="data.world.atmosphere" @input.debounce.400ms="touchData()" placeholder="例：湿冷、霓虹、锈味、失眠、遥远的鸣笛">
+        </div>
+        <div class="field"><label class="field__label">跟现实最大的不同</label><div class="field__tip">一个让读者"啊，这是另一个世界"的点</div>
+          <textarea x-model="data.world.diffFromReality" @input.debounce.400ms="touchData()" placeholder="例：这里没有天空，所有人都习惯了"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 3. 角色列表根节点 -->
+    <template x-if="current.type==='characters-root'">
+      <div>
+        <div class="empty-state" x-show="data.characters.length===0">
+          <div class="big">🎭</div>
+          <div>还没角色。点下方按钮加一个。</div>
+        </div>
+        <div x-show="data.characters.length>0">
+          <div class="field__tip" style="margin-bottom:12px">当前 <span x-text="data.characters.length"></span> 个角色。点左侧目录树里的名字进入详情。</div>
+          <template x-for="c in data.characters" :key="c.id">
+            <div class="frag-item" style="cursor:pointer" @click="select({type:'character',id:c.id})">
+              <div class="frag-item__body">
+                <div class="frag-item__type" x-text="c.role||'角色'"></div>
+                <div class="frag-item__text" x-text="(c.name||'（未命名）')+' · '+(c.identity||'（未填身份）')"></div>
+              </div>
+            </div>
+          </template>
+        </div>
+        <button class="btn btn--primary" style="margin-top:16px" @click="addCharacter()">+ 新增角色</button>
+      </div>
+    </template>
+
+    <!-- 3b. 单个角色 -->
+    <template x-if="current.type==='character'">
+      <div x-data="{c:currentCharacter()}">
+        <div class="role-radio">
+          <template x-for="r in ['主角','配角','反派']" :key="r">
+            <label :class="{selected:c.role===r}" @click="c.role=r; touchData()">
+              <span style="font-size:20px" x-text="{'主角':'★','配角':'☆','反派':'☠'}[r]"></span>
+              <span x-text="r"></span>
+            </label>
+          </template>
+        </div>
+        <div class="field"><label class="field__label">名字</label>
+          <input type="text" x-model="c.name" @input="touchData()" placeholder="例：陈砚">
+        </div>
+        <div class="field"><label class="field__label">身份 / 职业 / 处境</label><div class="field__tip">故事开场时他/她的社会位置</div>
+          <textarea x-model="c.identity" @input="touchData()" placeholder="例：32 岁记忆借贷所前员工，被开除后靠给人当替身生活"></textarea>
+        </div>
+        <div class="field"><label class="field__label">欲望</label><div class="field__tip">最想要什么？(一句话)</div>
+          <input type="text" x-model="c.desire" @input="touchData()" placeholder="例：想拿回自己被抵押掉的三段记忆">
+        </div>
+        <div class="field"><label class="field__label">恐惧</label><div class="field__tip">最怕什么？这个恐惧最终会不会成真？</div>
+          <input type="text" x-model="c.fear" @input="touchData()" placeholder="例：怕想起为什么当年要抵押">
+        </div>
+        <div class="field"><label class="field__label">读者好感度</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">应该讨厌</span>
+            <input type="range" min="0" max="100" x-model.number="c.likability" @input="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">应该爱</span>
+            <span class="val" x-text="c.likability"></span>
+          </div>
+        </div>
+        <div class="field"><label class="field__label">作者投射</label>
+          <div class="slider-row">
+            <span style="font-size:11px;color:var(--text-3)">完全不是我</span>
+            <input type="range" min="0" max="100" x-model.number="c.authorProjection" @input="touchData()">
+            <span style="font-size:11px;color:var(--text-3)">就是我</span>
+            <span class="val" x-text="c.authorProjection"></span>
+          </div>
+        </div>
+        <div class="field"><label class="field__label">背景故事</label><div class="field__tip">来自哪里、经历过什么、伤疤在哪</div>
+          <textarea x-model="c.backstory" @input="touchData()" style="min-height:100px" placeholder="有想到什么写什么，Brain Dump 归位到这里的内容也会追加"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 4. 冲突 -->
+    <template x-if="current.type==='conflict'">
+      <div>
+        <div class="field"><label class="field__label">外部主冲突</label><div class="field__tip">主角撞上什么外面的力量？</div>
+          <textarea x-model="data.conflict.externalMain" @input.debounce.400ms="touchData()" placeholder="例：政府开始追杀所有记忆商人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">内部主冲突</label><div class="field__tip">主角在跟自己较劲什么？</div>
+          <textarea x-model="data.conflict.internalMain" @input.debounce.400ms="touchData()" placeholder="例：她既想拿回记忆，又害怕拿回后会崩溃"></textarea>
+        </div>
+        <div class="field"><label class="field__label">副冲突</label><div class="field__tip">支线上的其他冲突</div>
+          <textarea x-model="data.conflict.subConflict" @input.debounce.400ms="touchData()" placeholder="例：跟前搭档的信任裂痕、跟妹妹的亲情线"></textarea>
+        </div>
+        <div class="field"><label class="field__label">高潮场景</label><div class="field__tip">最刺激你的一场对抗是什么？(可以只是一个画面)</div>
+          <textarea x-model="data.conflict.climaxScene" @input.debounce.400ms="touchData()" placeholder="例：在雨夜的天台上，她终于放走了那段记忆"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 5. 章节列表根 -->
+    <template x-if="current.type==='chapters-root'">
+      <div>
+        <div class="field__tip" style="margin-bottom:12px">共 <span x-text="data.chapters.length"></span> 章。点左侧目录进入详情。用 ↑↓ 调顺序。</div>
+        <template x-for="ch in data.chapters" :key="ch.id">
+          <div class="frag-item" style="cursor:pointer" @click="select({type:'chapter',id:ch.id})">
+            <div class="frag-item__body">
+              <div class="frag-item__type" x-text="'Ch'+String(ch.number).padStart(2,'0')"></div>
+              <div class="frag-item__text" x-text="(ch.title||'（未命名）')+' · '+(ch.oneLine||'（未填一句话）')"></div>
+            </div>
+          </div>
+        </template>
+        <button class="btn btn--primary" style="margin-top:16px" @click="addChapter()">+ 新增章节</button>
+      </div>
+    </template>
+
+    <!-- 5b. 单章 -->
+    <template x-if="current.type==='chapter'">
+      <div x-data="{ch:currentChapter()}">
+        <div class="field__row" style="margin-bottom:18px">
+          <div style="min-width:80px"><label class="field__label">章号</label>
+            <input type="number" min="1" x-model.number="ch.number" @input="touchData()">
+          </div>
+          <div style="flex:1"><label class="field__label">标题</label>
+            <input type="text" x-model="ch.title" @input="touchData()" placeholder="例：初雪后的地下三层">
+          </div>
+        </div>
+        <div class="field"><label class="field__label">一句话</label><div class="field__tip">这一章讲了什么？</div>
+          <textarea x-model="ch.oneLine" @input="touchData()" placeholder="例：陈砚在借贷所的旧办公室发现了自己被拿走那年的账本"></textarea>
+        </div>
+        <div class="field"><label class="field__label">POV</label><div class="field__tip">从谁的视角写？</div>
+          <select x-model="ch.pov" @change="touchData()">
+            <option value="">— 选一个 —</option>
+            <template x-for="c in data.characters" :key="c.id">
+              <option :value="c.name" x-text="c.name||'（未命名）'"></option>
+            </template>
+            <option value="全知">全知</option>
+          </select>
+        </div>
+        <div class="field"><label class="field__label">关联角色</label><div class="field__tip">这一章出现哪些角色（多选）</div>
+          <div class="check-group" x-show="data.characters.length>0">
+            <template x-for="c in data.characters" :key="c.id">
+              <span class="chip" :class="{selected:ch.characters.includes(c.name)}" @click="toggleChChar(ch,c.name)" x-text="c.name||'（未命名）'"></span>
+            </template>
+          </div>
+          <div class="field__tip" x-show="data.characters.length===0">先去角色板块加人</div>
+        </div>
+        <div class="field"><label class="field__label">关键场景</label><div class="field__tip">这一章最要写好的一个场景</div>
+          <textarea x-model="ch.keyScenes" @input="touchData()" style="min-height:80px" placeholder="有想到什么写什么"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 6. 碎片池 -->
+    <template x-if="current.type==='fragments'">
+      <div>
+        <div class="field__tip" style="margin-bottom:12px">画面、台词、灵感……先扔进来，之后再想去哪</div>
+        <div class="field">
+          <label class="field__label">新增碎片</label>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <select x-model="fragDraft.type" style="width:120px">
+              <option value="画面">画面</option><option value="台词">台词</option><option value="灵感">灵感</option>
+            </select>
+            <textarea x-model="fragDraft.content" placeholder="随便记一笔" style="min-height:50px"></textarea>
+            <button class="btn btn--primary" @click="addFragment()" :disabled="!fragDraft.content.trim()">+ 加</button>
+          </div>
+        </div>
+        <template x-for="f in data.fragments" :key="f.id">
+          <div class="frag-item">
+            <div class="frag-item__body">
+              <div class="frag-item__type" x-text="f.type"></div>
+              <div class="frag-item__text" x-text="f.content"></div>
+            </div>
+            <button class="mini-btn danger" @click="delFragment(f.id)">✕</button>
+          </div>
+        </template>
+        <div class="empty-state" x-show="data.fragments.length===0">
+          <div class="big">🎬</div>
+          <div>碎片池空的，脑子里冒出来什么就先扔进来</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- 7. 表达 -->
+    <template x-if="current.type==='message'">
+      <div>
+        <div class="field"><label class="field__label">核心讯息</label><div class="field__tip">你最想让读者读完记住的一句话 / 一个感觉</div>
+          <textarea x-model="data.message.coreMessage" @input.debounce.400ms="touchData()" style="min-height:80px" placeholder="例：不是所有记忆都值得拿回，但你有权决定放走哪些"></textarea>
+        </div>
+        <div class="field"><label class="field__label">为什么现在想写</label><div class="field__tip">这个故事跟当下的你有什么关系？</div>
+          <textarea x-model="data.message.whyNow" @input.debounce.400ms="touchData()" style="min-height:80px" placeholder="例：因为最近在想「30 岁之后要不要把之前的自己都清零」"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 8. 反面清单 -->
+    <template x-if="current.type==='antilist'">
+      <div>
+        <div class="field"><label class="field__label">要避开的烂俗套路</label>
+          <textarea x-model="data.antilist.avoidTropes" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：主角开挂 / 反派临时黑化 / 女主爱上救她的男人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">主角不能变成的样子</label>
+          <textarea x-model="data.antilist.avoidHeroBecoming" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：不能变成一个说教型的圣人"></textarea>
+        </div>
+        <div class="field"><label class="field__label">结局绝对不要</label>
+          <textarea x-model="data.antilist.avoidEndings" @input.debounce.400ms="touchData()" style="min-height:70px" placeholder="例：不要 happy ending / 不要一切都是梦"></textarea>
+        </div>
+      </div>
+    </template>
+
+    <!-- 9. 已立项目 (v0.3) -->
+    <template x-if="current.type==='projects'">
+      <div>
+        <div class="projects-toolbar" x-show="projects.length>0">
+          <div class="projects-toolbar__title">已立项目 (<span x-text="projects.length"></span>)</div>
+          <label style="font-size:11px;color:var(--text-3)">排序</label>
+          <select x-model="projectSort.by" @change="saveProjectSort()">
+            <option value="updatedAt">编辑时间</option>
+            <option value="createdAt">立项时间</option>
+          </select>
+          <select x-model="projectSort.order" @change="saveProjectSort()">
+            <option value="desc">倒序</option>
+            <option value="asc">正序</option>
+          </select>
+        </div>
+        <div class="cards-grid">
+          <div class="pcard new" @click="createProject()">
+            <div class="big">+</div>
+            <div x-text="projects.length===0?'新建立项':'新建立项'"></div>
+          </div>
+          <template x-for="proj in sortedProjects()" :key="proj.id">
+            <div class="pcard" :class="{current:proj.id===currentProjectId}"
+                 @click="proj.id!==currentProjectId && !proj._menuOpen && !proj._renaming && switchProject(proj.id)">
+              <div class="pcard__badge" x-show="proj.id===currentProjectId">正在编辑</div>
+              <div class="pcard__menu" @click.stop>
+                <button class="pcard__menu-btn" @click.stop="toggleCardMenu(proj)" title="更多">⋯</button>
+                <div class="pcard__menu-list" x-show="proj._menuOpen" @click.outside="proj._menuOpen=false" style="display:none">
+                  <button @click.stop="startRename(proj)">✏️ 重命名</button>
+                  <button @click.stop="duplicateProject(proj.id)">📋 复制副本</button>
+                  <button @click.stop="exportProject(proj.id)">⬇️ 导出 .md</button>
+                  <button class="danger" @click.stop="askDeleteProject(proj)">🗑 删除</button>
+                </div>
+              </div>
+              <template x-if="!proj._renaming">
+                <div class="pcard__title" x-text="proj.name"></div>
+              </template>
+              <template x-if="proj._renaming">
+                <input class="rename-input" style="margin:14px 0 6px" type="text" x-model="proj._renameDraft"
+                       x-init="$nextTick(()=>$el.focus())"
+                       @click.stop @keydown.enter.prevent="commitRename(proj)" @keydown.escape="proj._renaming=false"
+                       @blur="commitRename(proj)">
+              </template>
+              <div class="pcard__oneline" :class="{empty:!proj.oneLineStory}" x-text="proj.oneLineStory||'尚未填写故事简介'"></div>
+              <div class="pcard__tags" x-show="proj.worldTag">
+                <span class="pcard__tag" x-text="proj.worldTag"></span>
+              </div>
+              <div class="pcard__chars" :class="{empty:!proj.charsSummary}" x-text="proj.charsSummary||'尚未添加角色'"></div>
+              <div class="pcard__footer">
+                <div class="pcard__progress" :class="{editing:proj.id===currentProjectId}">
+                  <template x-if="proj.id===currentProjectId"><span>✒️ 正在编辑</span></template>
+                  <template x-if="proj.id!==currentProjectId">
+                    <span x-text="proj.lastAction ? (proj.lastAction.section+' / '+proj.lastAction.detail) : '尚未开始编辑'"></span>
+                  </template>
+                </div>
+                <span class="pcard__time" x-text="relTime(proj.updatedAt)"></span>
+                <button class="pcard__resume" x-show="proj.id!==currentProjectId && proj.lastAction"
+                        @click.stop="resumeProject(proj.id)" title="断点续传">↩️ 续传</button>
+              </div>
+            </div>
+          </template>
+        </div>
+        <div class="empty-state" x-show="projects.length===0" style="margin-top:20px">
+          <div class="big">📚</div>
+          <div>还没有立项，从这里开始你的第一个故事</div>
+        </div>
+      </div>
+    </template>
+
+    <!-- Smart asks -->
+    <div class="asks-section" x-show="currentAsks().length>0">
+      <h3>🤔 智能追问</h3>
+      <p class="hint">根据你在这个节点填的内容匹配出来的追问。答不上来就跳过。</p>
+      <template x-for="(ask,idx) in currentAsks()" :key="ask.id">
+        <div class="ask-card">
+          <div class="ask-card__q" x-text="ask.q"></div>
+          <div class="ask-card__actions" x-show="!ask.answering">
+            <button class="btn btn--sm btn--primary" @click="ask.answering=true">回答</button>
+            <button class="btn btn--sm btn--ghost" @click="skipAsk(ask.id)">跳过</button>
+          </div>
+          <div x-show="ask.answering">
+            <textarea x-model="ask.answerText" placeholder="随便答"></textarea>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="btn btn--sm btn--primary" @click="commitAsk(ask.id)" :disabled="!ask.answerText.trim()">追加到当前节点</button>
+              <button class="btn btn--sm btn--ghost" @click="ask.answering=false">取消</button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </main>
+
+  <!-- RIGHT: PREVIEW -->
+  <aside class="col preview-col" :class="{'mobile-open':mobilePreviewOpen,'collapsed':rightCollapsed}"
+         @click.outside="mobilePreviewOpen && (mobilePreviewOpen=false)">
+    <button type="button" class="collapse-btn collapse-btn--right" @click.stop="toggleRightCollapsed()"
+            :title="rightCollapsed?'展开档案':'折叠档案'" x-text="rightCollapsed?'«':'»'"></button>
+    <h3 style="padding-left:36px">📄 故事档案预览</h3>
+    <p class="hint">左侧填 → 右侧实时更新。点标题跳转到对应节点。</p>
+    <div class="md-preview" x-html="renderPreview()"></div>
+    <div class="preview-actions">
+      <button class="btn btn--primary btn--sm" @click="copyMd()">📋 复制 Markdown</button>
+      <button class="btn btn--sm" @click="downloadMd()">⬇️ 下载 .md</button>
+      <button class="btn btn--sm btn--danger" @click="resetAll()" style="margin-left:auto">🗑 重置</button>
+    </div>
+  </aside>
+</div>
+
+<!-- v0.3.1 Right floater: shown when right panel collapsed on desktop (via body.right-collapsed CSS) -->
+<div class="right-floater">
+  <button type="button" class="rf-btn" @click="toggleRightCollapsed()" title="展开档案">📄</button>
+  <button type="button" class="rf-btn" @click="dumpModal=true" title="快速记一笔">💭</button>
+</div>
+
+<!-- Floating Brain Dump ball (hidden on desktop when right collapsed via body.right-collapsed CSS) -->
+<button class="fab" @click="dumpModal=true" title="快速记一笔">💭</button>
+
+<!-- Brain Dump Modal -->
+<div class="modal-bg" x-show="dumpModal" x-transition @click.self="dumpModal=false" style="display:none">
+  <div class="modal">
+    <h3>💭 快速记一笔</h3>
+    <p class="hint">脑子里冒出啥先写下来，选个归位目标（默认扔碎片池）</p>
+    <textarea x-model="dumpText" placeholder="随便写..." x-ref="dumpArea" @keydown.meta.enter.prevent="submitDump()" @keydown.ctrl.enter.prevent="submitDump()"></textarea>
+    <select x-model="dumpTarget" style="margin-bottom:12px">
+      <option value="fragments">🎬 先扔碎片池（默认）</option>
+      <option value="project">📖 立项 · 一句话故事</option>
+      <option value="world">🌍 世界观 · 世界规则</option>
+      <template x-for="c in data.characters" :key="c.id">
+        <option :value="'character:'+c.id" x-text="roleEmoji(c.role)+' 角色 · '+(c.name||'（未命名）')+' · 背景'"></option>
+      </template>
+      <option value="conflict">⚔️ 冲突 · 外部主冲突</option>
+      <template x-for="ch in data.chapters" :key="ch.id">
+        <option :value="'chapter:'+ch.id" x-text="'📄 Ch'+String(ch.number).padStart(2,'0')+' · 关键场景'"></option>
+      </template>
+      <option value="message">🎯 表达 · 核心讯息</option>
+      <option value="antilist">🚫 反面清单 · 要避开的烂俗套路</option>
+    </select>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="dumpModal=false">取消</button>
+      <button class="btn btn--primary" @click="submitDump()" :disabled="!dumpText.trim()">提交</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" x-show="toast" x-transition x-text="toast" style="display:none"></div>
+
+<!-- Delete confirm modal (v0.3) -->
+<div class="modal-bg" x-show="deleteModal.open" x-transition @click.self="deleteModal.open=false" style="display:none">
+  <div class="modal">
+    <h3>🗑 确定删除项目？</h3>
+    <p class="hint" style="font-size:13px;color:var(--text-1);margin-bottom:16px">
+      确定删除《<span x-text="deleteModal.name"></span>》？<br>
+      <span style="color:var(--danger);font-size:12px">此操作不可恢复。</span>
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="deleteModal.open=false">取消</button>
+      <button class="btn btn--danger" @click="confirmDeleteProject()">删除</button>
+    </div>
+  </div>
+</div>
+<div class="footer-tag">马启航Marvis · MVS-013 · v0.3.1 · 2026-07-23</div>
+
+<script>
+function storyEditor() {
+  return {
+    STORAGE_PROJECTS: 'mvs-013-projects',
+    STORAGE_CURRENT: 'mvs-013-current',
+    STORAGE_SORT: 'mvs-013-project-sort',
+    STORAGE_PROJECT_PREFIX: 'mvs-013-project-',
+    STORAGE_LEFT_COLLAPSED: 'mvs-013-left-collapsed',
+    STORAGE_RIGHT_COLLAPSED: 'mvs-013-right-collapsed',
+    leftCollapsed: false,
+    rightCollapsed: false,
+
+    _uid: 0,
+    _saveTimer: null,
+    _flashTimer: null,
+    _toastTimer: null,
+    savedRecently: false,
+    toast: '',
+    mobileTreeOpen: false,
+    mobilePreviewOpen: false,
+    dumpModal: false,
+    dumpText: '',
+    dumpTarget: 'fragments',
+    fragDraft: { type: '画面', content: '' },
+    current: { type: 'project' },
+    asks: [], // {id, q, targetType, targetId, targetField, answering, answerText}
+    _lastAskScan: {},
+    // v0.3 multi-project state
+    projects: [], // Array<{id, name, createdAt, updatedAt, oneLineStory, worldTag, charsSummary, lastAction, _menuOpen, _renaming, _renameDraft}>
+    currentProjectId: null,
+    projectSort: { by: 'updatedAt', order: 'desc' },
+    deleteModal: { open: false, id: null, name: '' },
+
+    genreOptions: ['科幻','奇幻','悬疑','推理','爱情','言情','都市','历史','武侠','校园','职场','惊悚','悬念','文学','青春'],
+
+    data: {
+      project: { title:'', oneLineStory:'', theme:'', genres:[], toneWarmth:50, toneHumor:30, readerProfile:'', lengthType:'' },
+      world:   { era:'', place:'', worldRules:'', atmosphere:'', diffFromReality:'' },
+      characters: [],
+      conflict:  { externalMain:'', internalMain:'', subConflict:'', climaxScene:'' },
+      chapters:  [],
+      fragments: [],
+      message:   { coreMessage:'', whyNow:'' },
+      antilist:  { avoidTropes:'', avoidHeroBecoming:'', avoidEndings:'' },
+    },
+
+    // ===== ask rule library (from v0.1) =====
+    askRules: [
+      { kw:['主角','他','她','我','角色'], questions:[
+        '他/她是什么身份？（职业 / 年龄 / 生存状态）',
+        '故事开场时他/她正处在什么处境？',
+        '他/她最想要什么？（一句话说清欲望）',
+        '他/她最怕什么？（这个恐惧会不会最终成真？）',
+      ]},
+      { kw:['AI','机器人','系统','智能','算法','模型'], questions:[
+        '这个 AI / 系统是 AGI 还是弱 AI？它有自我意识吗？',
+        '它的能力边界在哪？什么它做不到？',
+        '它跟主角是什么关系——工具 / 伙伴 / 敌人 / 神？',
+      ]},
+      { kw:['未来','2045','2050','赛博','科幻','近未来'], questions:[
+        '具体是哪一年？',
+        '这个未来跟现在最大的不同点是什么？（一个就够）',
+        '普通人在这个未来里过得比现在好还是差？',
+      ]},
+      { kw:['现代','都市','城市','上海','北京','成都','深圳','广州','重庆','杭州'], questions:[
+        '是现在的还是特定年代的？',
+        '这座城市在故事里是背景板，还是有具体的角色感？',
+        '主角跟这座城的关系是什么——归属 / 逃离 / 陌生？',
+      ]},
+      { kw:['死','杀','血','暴力','枪','刀'], questions:[
+        '这个暴力元素是主线还是背景？',
+        '主角是施暴者、受害者，还是旁观者？',
+        '暴力发生的那一刻，读者应该心疼谁？',
+      ]},
+      { kw:['孤独','无力','绝望','愤怒','痛苦','麻木','焦虑'], questions:[
+        '这个情绪谁承受？主角还是环境里的所有人？',
+        '这个情绪的源头是什么？',
+        '故事结尾这个情绪会被解决、缓解，还是加深？',
+      ]},
+      { kw:['爱','爱情','暗恋','夫妻','喜欢','恋人','情人'], questions:[
+        '这段感情是主线还是副线？',
+        '两个人谁更主动？谁更被动？',
+        '结局是圆满、错过，还是走散？',
+      ]},
+      { kw:['记忆','遗忘','失忆','回忆'], questions:[
+        '是主动删除还是被动失去？',
+        '失去的是好回忆还是坏回忆？',
+        '主角想不想找回来？',
+      ]},
+      { kw:['如果','假如','万一','要是'], questions:[
+        '这个「如果」如果成真，最先改变的是什么？',
+        '谁最受影响？',
+        '这个「如果」是浪漫化的，还是恐怖化的？',
+      ]},
+      { kw:['反派','敌人','对手','坏人','恶'], questions:[
+        '反派的动机是什么？',
+        '他觉得自己是好人吗？',
+        '他和主角有没有共同点？（有的话，就有力量）',
+      ]},
+    ],
+    fallbackAsks: [
+      '这段想法你是在什么场景下冒出来的？',
+      '你最想让读者读到这里时产生什么反应？',
+      '有没有具体的画面或台词，已经在你脑子里成型了？',
+      '一句话概括这个故事，会是哪一句？',
+    ],
+
+    // ===== lifecycle =====
+    init() {
+      this.loadCollapsedState();
+      this.loadProjectsIndex();
+      this.loadSort();
+      const curId = localStorage.getItem(this.STORAGE_CURRENT);
+      if (curId && this.projects.find(p => p.id === curId)) {
+        this.currentProjectId = curId;
+        this.loadProjectData(curId);
+      } else if (this.projects.length > 0) {
+        this.currentProjectId = this.projects[0].id;
+        this.loadProjectData(this.currentProjectId);
+      } else {
+        const p = this.newProjectRecord();
+        this.projects.push(p);
+        this.currentProjectId = p.id;
+        this.resetData();
+      }
+      if (this.data.chapters.length === 0) {
+        this.data.chapters.push(this.newChapter(1));
+      }
+      this.saveProjectData();
+      this.saveProjectsIndex();
+      // v0.3 fix 3: no deep watcher on data. touchData() handles saves + ask refresh.
+      this.$watch('current', () => this.rescanAsks());
+      // v0.3 fix 1: event bus for reverse-nav (replaces Alpine _x_dataStack access)
+      window.addEventListener('mvs013:nav', (e) => {
+        if (e && e.detail) this.select(e.detail);
+      });
+      this.rescanAsks();
+    },
+    uid() { this._uid++; return Date.now().toString(36) + '-' + this._uid; },
+    touchData(sectionHint, detailHint) {
+      this.recordLastAction(sectionHint, detailHint);
+      this.saveDebounced();
+      clearTimeout(this._askTimer);
+      this._askTimer = setTimeout(() => this.rescanAsks(), 400);
+    },
+
+    // ===== persistence (v0.3 multi-project) =====
+    saveDebounced() {
+      clearTimeout(this._saveTimer);
+      this._saveTimer = setTimeout(() => this.saveProjectData(), 300);
+    },
+    loadCollapsedState() {
+      try {
+        this.leftCollapsed = localStorage.getItem(this.STORAGE_LEFT_COLLAPSED) === 'true';
+        this.rightCollapsed = localStorage.getItem(this.STORAGE_RIGHT_COLLAPSED) === 'true';
+        this.$nextTick(() => { document.body.classList.toggle('right-collapsed', this.rightCollapsed); document.body.classList.toggle('left-collapsed', this.leftCollapsed); });
+      } catch(e) {}
+    },
+    toggleLeftCollapsed() {
+      this.leftCollapsed = !this.leftCollapsed;
+      document.body.classList.toggle('left-collapsed', this.leftCollapsed);
+      try { localStorage.setItem(this.STORAGE_LEFT_COLLAPSED, String(this.leftCollapsed)); } catch(e) {}
+    },
+    toggleRightCollapsed() {
+      this.rightCollapsed = !this.rightCollapsed;
+      document.body.classList.toggle('right-collapsed', this.rightCollapsed);
+      try { localStorage.setItem(this.STORAGE_RIGHT_COLLAPSED, String(this.rightCollapsed)); } catch(e) {}
+    },
+    // v0.3.1: compact chapter label for collapsed left rail
+    // Rules: 序章→「序」, 引子→「引」, 尾声→「尾」; 中文数字章号→阿拉伯数字; 子节 X.Y
+    chapterShortLabel(ch) {
+      const title = (ch.title || '').trim();
+      if (title.startsWith('序')) return '序';
+      if (title.startsWith('引')) return '引';
+      if (title.startsWith('尾')) return '尾';
+      // Detect 第 X 章第 Y 幕 style subsection (kept simple; data model has no children yet)
+      const m = title.match(/第\s*([一二三四五六七八九十\d]+)\s*章\s*(?:第\s*([一二三四五六七八九十\d]+)\s*(?:幕|节))?/);
+      if (m) {
+        const a = this._cnToNum(m[1]);
+        const b = m[2] ? this._cnToNum(m[2]) : null;
+        if (a) return b ? (a + '.' + b) : String(a);
+      }
+      return String(ch.number || '');
+    },
+    _cnToNum(s) {
+      if (!s) return null;
+      if (/^\d+$/.test(s)) return parseInt(s, 10);
+      const map = {'一':1,'二':2,'三':3,'四':4,'五':5,'六':6,'七':7,'八':8,'九':9,'十':10};
+      if (map[s]) return map[s];
+      // simple 十X / X十 / X十Y
+      if (/^十/.test(s)) { const t = map[s.slice(1)]||0; return 10 + t; }
+      if (/十$/.test(s)) { const t = map[s.slice(0,-1)]||1; return t*10; }
+      const mm = s.match(/^([一-九])十([一-九])$/);
+      if (mm) return map[mm[1]]*10 + map[mm[2]];
+      return null;
+    },
+    loadProjectsIndex() {
+      try {
+        const raw = localStorage.getItem(this.STORAGE_PROJECTS);
+        if (!raw) { this.projects = []; return; }
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) {
+          this.projects = arr.map(p => Object.assign({
+            _menuOpen: false, _renaming: false, _renameDraft: ''
+          }, p));
+        }
+      } catch(e) { console.error('loadProjectsIndex fail', e); this.projects = []; }
+    },
+    saveProjectsIndex() {
+      try {
+        const clean = this.projects.map(p => ({
+          id: p.id, name: p.name, createdAt: p.createdAt, updatedAt: p.updatedAt,
+          oneLineStory: p.oneLineStory || '', worldTag: p.worldTag || '',
+          charsSummary: p.charsSummary || '', lastAction: p.lastAction || null,
+        }));
+        localStorage.setItem(this.STORAGE_PROJECTS, JSON.stringify(clean));
+      } catch(e) { console.error('saveProjectsIndex fail', e); }
+    },
+    loadSort() {
+      try {
+        const raw = localStorage.getItem(this.STORAGE_SORT);
+        if (raw) this.projectSort = Object.assign(this.projectSort, JSON.parse(raw));
+      } catch(e) {}
+    },
+    saveProjectSort() {
+      try { localStorage.setItem(this.STORAGE_SORT, JSON.stringify(this.projectSort)); } catch(e){}
+    },
+    loadProjectData(id) {
+      try {
+        const raw = localStorage.getItem(this.STORAGE_PROJECT_PREFIX + id);
+        if (!raw) {
+          this.resetData(); this.asks = []; this._lastAskScan = {};
+          this.current = { type: 'project' };
+          if (this.data.chapters.length === 0) this.data.chapters.push(this.newChapter(1));
+          return;
+        }
+        const p = JSON.parse(raw);
+        this.data = p.data ? Object.assign(this.defaultData(), p.data) : this.defaultData();
+        this.current = p.current || { type: 'project' };
+        this._uid = typeof p._uid === 'number' ? p._uid : 0;
+        this.asks = Array.isArray(p.asks) ? p.asks : [];
+        this._lastAskScan = {};
+      } catch(e) { console.error('loadProjectData fail', e); this.resetData(); }
+    },
+    saveProjectData() {
+      if (!this.currentProjectId) return;
+      try {
+        const payload = { v:'0.3.0', data:this.data, current:this.current, _uid:this._uid, asks:this.asks };
+        localStorage.setItem(this.STORAGE_PROJECT_PREFIX + this.currentProjectId, JSON.stringify(payload));
+        const proj = this.projects.find(p => p.id === this.currentProjectId);
+        if (proj) {
+          proj.updatedAt = Date.now();
+          proj.oneLineStory = this.data.project.oneLineStory || this.data.project.theme || '';
+          const era = this.data.world.era || '', place = this.data.world.place || '';
+          proj.worldTag = [era, place].filter(Boolean).join('·');
+          proj.charsSummary = this.buildCharsSummary();
+          this.saveProjectsIndex();
+        }
+        this.savedRecently = true;
+        clearTimeout(this._flashTimer);
+        this._flashTimer = setTimeout(() => this.savedRecently = false, 1500);
+      } catch(e) { console.error('save fail', e); }
+    },
+    defaultData() {
+      return {
+        project: { title:'', oneLineStory:'', theme:'', genres:[], toneWarmth:50, toneHumor:30, readerProfile:'', lengthType:'' },
+        world:   { era:'', place:'', worldRules:'', atmosphere:'', diffFromReality:'' },
+        characters: [],
+        conflict:  { externalMain:'', internalMain:'', subConflict:'', climaxScene:'' },
+        chapters:  [],
+        fragments: [],
+        message:   { coreMessage:'', whyNow:'' },
+        antilist:  { avoidTropes:'', avoidHeroBecoming:'', avoidEndings:'' },
+      };
+    },
+    resetData() { this.data = this.defaultData(); },
+    isDataEmpty() {
+      const d = this.data;
+      const flat = [d.project.title, d.project.oneLineStory, d.project.theme, d.project.readerProfile, d.project.lengthType,
+        d.world.era, d.world.place, d.world.worldRules, d.world.atmosphere, d.world.diffFromReality,
+        d.conflict.externalMain, d.conflict.internalMain, d.conflict.subConflict, d.conflict.climaxScene,
+        d.message.coreMessage, d.message.whyNow,
+        d.antilist.avoidTropes, d.antilist.avoidHeroBecoming, d.antilist.avoidEndings];
+      if (flat.some(s => (s||'').toString().trim() !== '')) return false;
+      if ((d.project.genres||[]).length > 0) return false;
+      if (d.characters.length > 0) return false;
+      if (d.fragments.length > 0) return false;
+      if (d.chapters.length > 1) return false;
+      if (d.chapters.length === 1) {
+        const c = d.chapters[0];
+        if ((c.title||c.oneLine||c.pov||c.keyScenes||'').toString().trim() !== '') return false;
+        if ((c.characters||[]).length > 0) return false;
+      }
+      return true;
+    },
+    buildCharsSummary() {
+      const roleOrder = { '主角':0, '配角':1, '反派':2 };
+      const named = this.data.characters.filter(c => (c.name||'').trim() !== '');
+      const sorted = [...named].sort((a,b) => (roleOrder[a.role]??9) - (roleOrder[b.role]??9));
+      if (sorted.length === 0) return '';
+      const first3 = sorted.slice(0,3).map(c => c.name).join('、');
+      const extra = sorted.length > 3 ? ` +${sorted.length-3}` : '';
+      return first3 + extra;
+    },
+    recordLastAction(section, detail) {
+      if (!this.currentProjectId) return;
+      const trackable = ['立项','世界观','角色','冲突','章节'];
+      if (!section) {
+        const map = { project:'立项', world:'世界观', 'characters-root':'角色', character:'角色',
+          conflict:'冲突', 'chapters-root':'章节', chapter:'章节' };
+        section = map[this.current.type];
+        if (!section) return;
+        detail = detail || this.inferDetail();
+      }
+      if (!trackable.includes(section)) return;
+      const proj = this.projects.find(p => p.id === this.currentProjectId);
+      if (proj) proj.lastAction = { section, detail: detail || '编辑中', ts: Date.now() };
+    },
+    inferDetail() {
+      const t = this.current.type;
+      if (t === 'project') return (this.data.project.title || '一句话故事') + ' 编辑中';
+      if (t === 'world') return '世界观编辑中';
+      if (t === 'characters-root') return '角色列表';
+      if (t === 'character') { const c = this.currentCharacter(); return (c?.name || '新角色') + ' 编辑中'; }
+      if (t === 'conflict') return '冲突编辑中';
+      if (t === 'chapters-root') return '章节列表';
+      if (t === 'chapter') { const c = this.currentChapter(); return 'Ch'+String(c?.number||'').padStart(2,'0')+' '+(c?.title||'未命名') + ' 编辑中'; }
+      return '编辑中';
+    },
+    resetAll() {
+      if (!confirm('确定重置当前项目的全部数据？此操作不可撤销。')) return;
+      if (!confirm('二次确认：当前项目的所有节点内容都会被清空。真的继续？')) return;
+      if (this.currentProjectId) localStorage.removeItem(this.STORAGE_PROJECT_PREFIX + this.currentProjectId);
+      location.reload();
+    },
+
+    // ===== v0.3 project management =====
+    newProjectRecord() {
+      const now = Date.now();
+      const d = new Date(now);
+      const stamp = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+      return {
+        id: this.uid(), name: `无题项目 (${stamp})`,
+        createdAt: now, updatedAt: now,
+        oneLineStory: '', worldTag: '', charsSummary: '', lastAction: null,
+        _menuOpen: false, _renaming: false, _renameDraft: '',
+      };
+    },
+    sortedProjects() {
+      const by = this.projectSort.by, order = this.projectSort.order;
+      const arr = [...this.projects];
+      arr.sort((a,b) => {
+        const va = a[by] || 0, vb = b[by] || 0;
+        return order === 'asc' ? va - vb : vb - va;
+      });
+      return arr;
+    },
+    createProject() {
+      this.autoDropEmptyCurrent();
+      const p = this.newProjectRecord();
+      this.projects.push(p);
+      this.currentProjectId = p.id;
+      localStorage.setItem(this.STORAGE_CURRENT, p.id);
+      this.resetData();
+      this.asks = []; this._lastAskScan = {};
+      this.data.chapters.push(this.newChapter(1));
+      this.saveProjectData();
+      this.saveProjectsIndex();
+      this.select({ type: 'project' });
+      this.showToast('已新建项目');
+    },
+    autoDropEmptyCurrent() {
+      if (!this.currentProjectId) return false;
+      if (this.isDataEmpty()) {
+        const idx = this.projects.findIndex(p => p.id === this.currentProjectId);
+        if (idx >= 0) {
+          localStorage.removeItem(this.STORAGE_PROJECT_PREFIX + this.currentProjectId);
+          this.projects.splice(idx, 1);
+          this.saveProjectsIndex();
+        }
+        this.currentProjectId = null;
+        return true;
+      }
+      this.saveProjectData();
+      return false;
+    },
+    switchProject(id, targetNode) {
+      if (id === this.currentProjectId) return;
+      this.autoDropEmptyCurrent();
+      const proj = this.projects.find(p => p.id === id);
+      if (!proj) return;
+      this.currentProjectId = id;
+      localStorage.setItem(this.STORAGE_CURRENT, id);
+      this.loadProjectData(id);
+      this.select(targetNode || { type: 'project' });
+    },
+    resumeProject(id) {
+      const proj = this.projects.find(p => p.id === id);
+      if (!proj) return;
+      this.autoDropEmptyCurrent();
+      this.currentProjectId = id;
+      localStorage.setItem(this.STORAGE_CURRENT, id);
+      this.loadProjectData(id);
+      const la = proj.lastAction;
+      let target = { type: 'project' };
+      if (la) {
+        const map = { '立项':'project', '世界观':'world', '角色':'characters-root',
+          '冲突':'conflict', '章节':'chapters-root' };
+        const t = map[la.section];
+        if (t) target = { type: t };
+      }
+      this.select(target);
+    },
+    toggleCardMenu(proj) {
+      const wasOpen = proj._menuOpen;
+      this.projects.forEach(p => p._menuOpen = false);
+      proj._menuOpen = !wasOpen;
+    },
+    startRename(proj) {
+      proj._renameDraft = proj.name;
+      proj._renaming = true;
+      proj._menuOpen = false;
+    },
+    commitRename(proj) {
+      if (!proj._renaming) return;
+      const v = (proj._renameDraft || '').trim();
+      if (v) proj.name = v;
+      proj._renaming = false;
+      proj.updatedAt = Date.now();
+      this.saveProjectsIndex();
+    },
+    duplicateProject(id) {
+      if (id === this.currentProjectId) this.saveProjectData();
+      const src = this.projects.find(p => p.id === id);
+      if (!src) return;
+      const raw = localStorage.getItem(this.STORAGE_PROJECT_PREFIX + id);
+      const newP = this.newProjectRecord();
+      newP.name = src.name + ' 副本';
+      newP.oneLineStory = src.oneLineStory;
+      newP.worldTag = src.worldTag;
+      newP.charsSummary = src.charsSummary;
+      this.projects.push(newP);
+      if (raw) localStorage.setItem(this.STORAGE_PROJECT_PREFIX + newP.id, raw);
+      this.saveProjectsIndex();
+      src._menuOpen = false;
+      this.showToast('已复制副本');
+    },
+    exportProject(id) {
+      if (id === this.currentProjectId) { this.downloadMd(); }
+      else {
+        const raw = localStorage.getItem(this.STORAGE_PROJECT_PREFIX + id);
+        if (!raw) { this.showToast('没有内容可导出'); return; }
+        const savedData = JSON.parse(JSON.stringify(this.data));
+        try {
+          const p = JSON.parse(raw);
+          this.data = Object.assign(this.defaultData(), p.data || {});
+          this.downloadMd();
+        } finally {
+          this.data = savedData;
+        }
+      }
+      const proj = this.projects.find(p => p.id === id);
+      if (proj) proj._menuOpen = false;
+    },
+    askDeleteProject(proj) {
+      proj._menuOpen = false;
+      this.deleteModal = { open: true, id: proj.id, name: proj.name };
+    },
+    confirmDeleteProject() {
+      const id = this.deleteModal.id;
+      if (!id) { this.deleteModal.open = false; return; }
+      localStorage.removeItem(this.STORAGE_PROJECT_PREFIX + id);
+      const idx = this.projects.findIndex(p => p.id === id);
+      if (idx >= 0) this.projects.splice(idx, 1);
+      const wasCurrent = id === this.currentProjectId;
+      if (wasCurrent) {
+        if (this.projects.length > 0) {
+          this.currentProjectId = this.projects[0].id;
+          localStorage.setItem(this.STORAGE_CURRENT, this.currentProjectId);
+          this.loadProjectData(this.currentProjectId);
+          this.select({ type: 'project' });
+        } else {
+          this.currentProjectId = null;
+          localStorage.removeItem(this.STORAGE_CURRENT);
+          this.resetData();
+          this.asks = [];
+          this.select({ type: 'projects' });
+        }
+      }
+      this.saveProjectsIndex();
+      this.deleteModal = { open: false, id: null, name: '' };
+      this.showToast('已删除');
+    },
+    relTime(ts) {
+      if (!ts) return '';
+      const diff = Date.now() - ts;
+      const min = 60*1000, hr = 60*min, day = 24*hr;
+      if (diff < min) return '刚刚';
+      if (diff < hr) return Math.floor(diff/min) + ' 分钟前';
+      if (diff < day) return Math.floor(diff/hr) + ' 小时前';
+      if (diff < 2*day) return '昨天';
+      if (diff < 30*day) return Math.floor(diff/day) + ' 天前';
+      const d = new Date(ts);
+      return `${d.getMonth()+1} 月 ${d.getDate()} 日`;
+    },
+
+    // ===== navigation =====
+    select(target) {
+      this.current = target;
+      this.mobileTreeOpen = false;
+      // v0.3: record entry to trackable sections
+      if (target && target.type && target.type !== 'projects') {
+        this.recordLastAction();
+        this.saveDebounced();
+      }
+    },
+    breadcrumb() {
+      const t = this.current.type;
+      const map = {
+        'project':'📖 立项', 'world':'🌍 世界观',
+        'characters-root':'🎭 角色', 'conflict':'⚔️ 冲突',
+        'chapters-root':'📚 章节', 'fragments':'🎬 碎片池',
+        'message':'🎯 表达', 'antilist':'🚫 反面清单',
+        'projects':'📚 已立项目',
+      };
+      if (t === 'projects') return `<span class="current">📚 已立项目</span>`;
+      if (t === 'character') {
+        const c = this.currentCharacter();
+        return `<span>🎭 角色</span><span class="sep">›</span><span class="current">${this._esc(c?.name || '（未命名）')}</span>`;
+      }
+      if (t === 'chapter') {
+        const ch = this.currentChapter();
+        const num = ch ? 'Ch'+String(ch.number).padStart(2,'0') : '';
+        return `<span>📚 章节</span><span class="sep">›</span><span class="current">${num} · ${this._esc(ch?.title || '（未命名）')}</span>`;
+      }
+      return `<span class="current">${map[t] || ''}</span>`;
+    },
+    formTitle() {
+      const t = this.current.type;
+      const titles = {
+        'project':'📖 立项','world':'🌍 世界观','characters-root':'🎭 角色列表',
+        'conflict':'⚔️ 冲突','chapters-root':'📚 章节列表','fragments':'🎬 碎片池',
+        'message':'🎯 想表达什么','antilist':'🚫 反面清单',
+        'projects':'📚 已立项目',
+      };
+      if (t === 'character') {
+        const c = this.currentCharacter();
+        return `${this.roleEmoji(c?.role)} ${this._esc(c?.name || '（未命名角色）')}`;
+      }
+      if (t === 'chapter') {
+        const ch = this.currentChapter();
+        return `📄 Ch${String(ch?.number||'').padStart(2,'0')} · ${this._esc(ch?.title || '（未命名章节）')}`;
+      }
+      return titles[t] || '';
+    },
+    _esc(s) { return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); },
+
+    // ===== characters =====
+    newCharacter() {
+      return { id:this.uid(), role:'配角', name:'', identity:'', desire:'', fear:'', likability:60, authorProjection:20, backstory:'' };
+    },
+    addCharacter() {
+      const c = this.newCharacter();
+      if (this.data.characters.length === 0) c.role = '主角';
+      this.data.characters.push(c);
+      this.select({ type:'character', id:c.id });
+    },
+    delCharacter(id) {
+      if (!confirm('删除这个角色？')) return;
+      this.data.characters = this.data.characters.filter(x => x.id !== id);
+      if (this.current.type === 'character' && this.current.id === id) this.select({ type:'characters-root' });
+    },
+    currentCharacter() {
+      return this.data.characters.find(c => c.id === this.current.id);
+    },
+    roleEmoji(role) { return { '主角':'★', '配角':'☆', '反派':'☠' }[role] || '·'; },
+
+    // ===== chapters =====
+    newChapter(num) {
+      return { id:this.uid(), number:num||(this.data.chapters.length+1), title:'', oneLine:'', pov:'', characters:[], keyScenes:'' };
+    },
+    addChapter() {
+      const nextNum = this.data.chapters.length > 0 ? Math.max(...this.data.chapters.map(c=>c.number))+1 : 1;
+      const ch = this.newChapter(nextNum);
+      this.data.chapters.push(ch);
+      this.select({ type:'chapter', id:ch.id });
+    },
+    delChapter(id) {
+      if (!confirm('删除这一章？')) return;
+      this.data.chapters = this.data.chapters.filter(x => x.id !== id);
+      if (this.current.type === 'chapter' && this.current.id === id) this.select({ type:'chapters-root' });
+    },
+    moveChapter(idx, delta) {
+      const j = idx + delta;
+      if (j < 0 || j >= this.data.chapters.length) return;
+      const arr = this.data.chapters;
+      [arr[idx], arr[j]] = [arr[j], arr[idx]];
+      this.saveDebounced();
+    },
+    currentChapter() {
+      return this.data.chapters.find(c => c.id === this.current.id);
+    },
+    toggleChChar(ch, name) {
+      const i = ch.characters.indexOf(name);
+      if (i >= 0) ch.characters.splice(i, 1); else ch.characters.push(name);
+      this.touchData();
+    },
+
+    // ===== fragments =====
+    addFragment() {
+      const c = this.fragDraft.content.trim();
+      if (!c) return;
+      this.data.fragments.push({ id:this.uid(), type:this.fragDraft.type, content:c });
+      this.fragDraft.content = '';
+    },
+    delFragment(id) {
+      this.data.fragments = this.data.fragments.filter(x => x.id !== id);
+    },
+
+    // ===== genres =====
+    toggleGenre(g) {
+      const arr = this.data.project.genres;
+      const i = arr.indexOf(g);
+      if (i >= 0) arr.splice(i, 1); else arr.push(g);
+      this.touchData('立项', '类型 '+g);
+    },
+
+    // ===== auto one-line =====
+    autoOneLine() {
+      const p = this.data.project;
+      const hero = this.data.characters.find(c => c.role === '主角');
+      const parts = [];
+      if (hero?.identity) parts.push('一个'+hero.identity);
+      else if (hero?.name) parts.push(hero.name);
+      if (this.data.conflict.externalMain) parts.push('遭遇'+this.data.conflict.externalMain);
+      if (hero?.desire) parts.push('渴望'+hero.desire);
+      const s = parts.join('，');
+      if (s) { p.oneLineStory = s; this.showToast('已生成 · 可以再改'); }
+      else this.showToast('先填主角和冲突再生成');
+    },
+
+    // ===== status dots =====
+    statusOf(section) {
+      const map = {
+        'project': ['title','oneLineStory','theme','readerProfile','lengthType'],
+        'world':   ['era','place','worldRules','atmosphere','diffFromReality'],
+        'conflict':['externalMain','internalMain','subConflict','climaxScene'],
+        'message': ['coreMessage','whyNow'],
+        'antilist':['avoidTropes','avoidHeroBecoming','avoidEndings'],
+      };
+      const fields = map[section];
+      if (!fields) return 'empty';
+      const obj = this.data[section];
+      let filled = 0;
+      fields.forEach(f => { if ((obj[f]||'').toString().trim() !== '') filled++; });
+      if (section === 'project' && this.data.project.genres.length > 0) filled++;
+      const total = fields.length + (section === 'project' ? 1 : 0);
+      if (filled === 0) return 'empty';
+      if (filled >= total) return 'green';
+      return 'yellow';
+    },
+    statusOfCharacter(c) {
+      const fields = ['name','identity','desire','fear','backstory'];
+      let filled = 0;
+      fields.forEach(f => { if ((c[f]||'').toString().trim() !== '') filled++; });
+      if (filled === 0) return 'empty';
+      if (filled >= fields.length) return 'green';
+      return 'yellow';
+    },
+    statusOfCharacters() {
+      if (this.data.characters.length === 0) return 'empty';
+      const all = this.data.characters.map(c => this.statusOfCharacter(c));
+      if (all.every(s => s === 'green')) return 'green';
+      return 'yellow';
+    },
+    statusOfChapter(ch) {
+      const fields = ['title','oneLine','pov','keyScenes'];
+      let filled = 0;
+      fields.forEach(f => { if ((ch[f]||'').toString().trim() !== '') filled++; });
+      if ((ch.characters||[]).length > 0) filled++;
+      if (filled === 0) return 'empty';
+      if (filled >= fields.length + 1) return 'green';
+      return 'yellow';
+    },
+    statusOfChapters() {
+      if (this.data.chapters.length === 0) return 'empty';
+      const all = this.data.chapters.map(c => this.statusOfChapter(c));
+      if (all.every(s => s === 'green')) return 'green';
+      return 'yellow';
+    },
+
+    // ===== smart asks =====
+    currentNodeText() {
+      const t = this.current.type;
+      if (t === 'project') return Object.values(this.data.project).flat().join(' ');
+      if (t === 'world')   return Object.values(this.data.world).join(' ');
+      if (t === 'conflict')return Object.values(this.data.conflict).join(' ');
+      if (t === 'message') return Object.values(this.data.message).join(' ');
+      if (t === 'antilist')return Object.values(this.data.antilist).join(' ');
+      if (t === 'character') { const c = this.currentCharacter(); return c ? [c.name,c.identity,c.desire,c.fear,c.backstory].join(' ') : ''; }
+      if (t === 'chapter')   { const c = this.currentChapter(); return c ? [c.title,c.oneLine,c.pov,c.keyScenes].join(' ') : ''; }
+      return '';
+    },
+    rescanAsks() {
+      const t = this.current.type;
+      if (!['project','world','conflict','message','antilist','character','chapter'].includes(t)) return;
+      const nodeKey = t === 'character' ? `character:${this.current.id}` : t === 'chapter' ? `chapter:${this.current.id}` : t;
+      const text = this.currentNodeText();
+      if (!text || text.trim().length < 4) return;
+      // avoid re-scanning identical content
+      if (this._lastAskScan[nodeKey] === text) return;
+      this._lastAskScan[nodeKey] = text;
+
+      const existingQs = new Set(this.asks.filter(a => a.targetKey === nodeKey).map(a => a.q));
+      const hits = new Set();
+      this.askRules.forEach(rule => {
+        if (rule.kw.some(k => text.includes(k))) {
+          rule.questions.forEach(q => hits.add(q));
+        }
+      });
+      const newQs = [...hits].filter(q => !existingQs.has(q)).slice(0, 3);
+      newQs.forEach(q => {
+        this.asks.push({ id:this.uid(), q, targetKey:nodeKey, answering:false, answerText:'' });
+      });
+    },
+    currentAsks() {
+      const t = this.current.type;
+      const key = t === 'character' ? `character:${this.current.id}` : t === 'chapter' ? `chapter:${this.current.id}` : t;
+      return this.asks.filter(a => a.targetKey === key);
+    },
+    skipAsk(id) { this.asks = this.asks.filter(a => a.id !== id); },
+    commitAsk(id) {
+      const a = this.asks.find(x => x.id === id);
+      if (!a || !a.answerText.trim()) return;
+      const stamp = new Date().toISOString().slice(11,16);
+      const appendText = `\n[${stamp}] Q: ${a.q}\nA: ${a.answerText.trim()}`;
+      const t = this.current.type;
+      if (t === 'character') {
+        const c = this.currentCharacter();
+        if (c) c.backstory = (c.backstory||'') + appendText;
+      } else if (t === 'chapter') {
+        const ch = this.currentChapter();
+        if (ch) ch.keyScenes = (ch.keyScenes||'') + appendText;
+      } else {
+        const fieldMap = {
+          'project':'oneLineStory','world':'worldRules','conflict':'externalMain',
+          'message':'coreMessage','antilist':'avoidTropes',
+        };
+        const f = fieldMap[t];
+        if (f) this.data[t][f] = (this.data[t][f]||'') + appendText;
+      }
+      this.asks = this.asks.filter(x => x.id !== id);
+      this.showToast('已追加到当前节点');
+      this.touchData();
+    },
+
+    // ===== brain dump =====
+    submitDump() {
+      const text = this.dumpText.trim();
+      if (!text) return;
+      const tgt = this.dumpTarget;
+      const stamp = new Date().toISOString().slice(11,16);
+      const suffix = `\n[${stamp}] ${text}`;
+
+      if (tgt === 'fragments') {
+        this.data.fragments.push({ id:this.uid(), type:'灵感', content:text });
+      } else if (tgt.startsWith('character:')) {
+        const id = tgt.split(':')[1];
+        const c = this.data.characters.find(x => x.id === id);
+        if (c) c.backstory = (c.backstory||'') + suffix;
+      } else if (tgt.startsWith('chapter:')) {
+        const id = tgt.split(':')[1];
+        const ch = this.data.chapters.find(x => x.id === id);
+        if (ch) ch.keyScenes = (ch.keyScenes||'') + suffix;
+      } else {
+        const fieldMap = {
+          'project':'oneLineStory','world':'worldRules','conflict':'externalMain',
+          'message':'coreMessage','antilist':'avoidTropes',
+        };
+        const f = fieldMap[tgt];
+        if (f) this.data[tgt][f] = (this.data[tgt][f]||'') + suffix;
+      }
+      this.showToast('已归位');
+      this.dumpText = '';
+      this.dumpModal = false;
+      this.touchData();
+    },
+
+    // ===== preview render =====
+    renderPreview() {
+      const d = this.data;
+      const esc = (s) => this._esc(s);
+      let h = '';
+      h += `<h1>《${esc(d.project.title || '未命名')}》· 故事档案</h1>`;
+      if (d.project.oneLineStory) h += `<blockquote>${esc(d.project.oneLineStory)}</blockquote>`;
+
+      h += `<h2>📖 立项</h2><ul>`;
+      const p = d.project;
+      if (p.theme) h += `<li>核心命题：${esc(p.theme)}</li>`;
+      if (p.genres.length) h += `<li>类型：${esc(p.genres.join(' / '))}</li>`;
+      h += `<li>调性：冷峻↔温暖 ${p.toneWarmth} · 严肃↔戏谑 ${p.toneHumor}</li>`;
+      if (p.readerProfile) h += `<li>目标读者：${esc(p.readerProfile)}</li>`;
+      if (p.lengthType) h += `<li>篇幅：${esc(p.lengthType)}</li>`;
+      if (!p.theme && !p.genres.length && !p.readerProfile && !p.lengthType) h += `<li class="empty">（暂无内容）</li>`;
+      h += `</ul>`;
+
+      h += `<h2>🌍 世界观</h2><ul>`;
+      const w = d.world;
+      if (w.era) h += `<li>时代：${esc(w.era)}</li>`;
+      if (w.place) h += `<li>地点：${esc(w.place)}</li>`;
+      if (w.worldRules) h += `<li>世界规则：${esc(w.worldRules)}</li>`;
+      if (w.atmosphere) h += `<li>氛围：${esc(w.atmosphere)}</li>`;
+      if (w.diffFromReality) h += `<li>不同点：${esc(w.diffFromReality)}</li>`;
+      if (Object.values(w).every(v => !v)) h += `<li class="empty">（暂无内容）</li>`;
+      h += `</ul>`;
+
+      h += `<h2>🎭 角色</h2>`;
+      if (d.characters.length === 0) h += `<div class="empty">（暂无角色）</div>`;
+      d.characters.forEach(c => {
+        h += `<h3 data-target='{"type":"character","id":"${c.id}"}' onclick='window._smcJump(this)'>${this.roleEmoji(c.role)} ${esc(c.role)} · ${esc(c.name||'（未命名）')}</h3><ul>`;
+        if (c.identity) h += `<li>身份：${esc(c.identity)}</li>`;
+        if (c.desire) h += `<li>欲望：${esc(c.desire)}</li>`;
+        if (c.fear) h += `<li>恐惧：${esc(c.fear)}</li>`;
+        h += `<li>读者好感 ${c.likability} · 作者投射 ${c.authorProjection}</li>`;
+        if (c.backstory) h += `<li>背景：${esc(c.backstory).replace(/\n/g,'<br>')}</li>`;
+        h += `</ul>`;
+      });
+
+      h += `<h2>⚔️ 冲突</h2><ul>`;
+      const cf = d.conflict;
+      if (cf.externalMain) h += `<li>外部主冲突：${esc(cf.externalMain)}</li>`;
+      if (cf.internalMain) h += `<li>内部主冲突：${esc(cf.internalMain)}</li>`;
+      if (cf.subConflict) h += `<li>副冲突：${esc(cf.subConflict)}</li>`;
+      if (cf.climaxScene) h += `<li>高潮场景：${esc(cf.climaxScene)}</li>`;
+      if (Object.values(cf).every(v => !v)) h += `<li class="empty">（暂无内容）</li>`;
+      h += `</ul>`;
+
+      h += `<h2>📚 章节</h2>`;
+      if (d.chapters.length === 0) h += `<div class="empty">（暂无章节）</div>`;
+      d.chapters.forEach(ch => {
+        h += `<h3 data-target='{"type":"chapter","id":"${ch.id}"}' onclick='window._smcJump(this)'>Ch${String(ch.number).padStart(2,'0')} · ${esc(ch.title||'（未命名）')}</h3><ul>`;
+        if (ch.oneLine) h += `<li>一句话：${esc(ch.oneLine)}</li>`;
+        if (ch.pov) h += `<li>POV：${esc(ch.pov)}</li>`;
+        if (ch.characters.length) h += `<li>关联角色：${esc(ch.characters.join('、'))}</li>`;
+        if (ch.keyScenes) h += `<li>关键场景：${esc(ch.keyScenes).replace(/\n/g,'<br>')}</li>`;
+        h += `</ul>`;
+      });
+
+      h += `<h2>🎬 碎片池</h2>`;
+      if (d.fragments.length === 0) h += `<div class="empty">（暂无碎片）</div>`;
+      else {
+        h += `<ul>`;
+        d.fragments.forEach(f => { h += `<li>【${esc(f.type)}】${esc(f.content)}</li>`; });
+        h += `</ul>`;
+      }
+
+      h += `<h2>🎯 表达</h2><ul>`;
+      const m = d.message;
+      if (m.coreMessage) h += `<li>核心讯息：${esc(m.coreMessage)}</li>`;
+      if (m.whyNow) h += `<li>为什么现在写：${esc(m.whyNow)}</li>`;
+      if (!m.coreMessage && !m.whyNow) h += `<li class="empty">（暂无内容）</li>`;
+      h += `</ul>`;
+
+      h += `<h2>🚫 反面清单</h2><ul>`;
+      const a = d.antilist;
+      if (a.avoidTropes) h += `<li>避开的套路：${esc(a.avoidTropes)}</li>`;
+      if (a.avoidHeroBecoming) h += `<li>主角不能变成：${esc(a.avoidHeroBecoming)}</li>`;
+      if (a.avoidEndings) h += `<li>结局不要：${esc(a.avoidEndings)}</li>`;
+      if (Object.values(a).every(v => !v)) h += `<li class="empty">（暂无内容）</li>`;
+      h += `</ul>`;
+
+      // set up jump handler once
+      if (!window._smcJump) {
+        window._smcJump = (el) => {
+          try {
+            const t = JSON.parse(el.getAttribute('data-target'));
+            window.dispatchEvent(new CustomEvent('mvs013:nav', { detail: t }));
+          } catch(e) { console.error(e); }
+        };
+      }
+      return h;
+    },
+
+    // ===== markdown =====
+    markdown() {
+      const d = this.data;
+      let md = `# 《${d.project.title || '未命名'}》· 故事档案\n\n`;
+      if (d.project.oneLineStory) md += `> ${d.project.oneLineStory}\n\n`;
+      md += `## 📖 立项\n`;
+      const p = d.project;
+      if (p.theme) md += `- 核心命题：${p.theme}\n`;
+      if (p.genres.length) md += `- 类型：${p.genres.join(' / ')}\n`;
+      md += `- 调性：冷峻↔温暖 ${p.toneWarmth} · 严肃↔戏谑 ${p.toneHumor}\n`;
+      if (p.readerProfile) md += `- 目标读者：${p.readerProfile}\n`;
+      if (p.lengthType) md += `- 篇幅：${p.lengthType}\n`;
+
+      md += `\n## 🌍 世界观\n`;
+      const w = d.world;
+      if (w.era) md += `- 时代：${w.era}\n`;
+      if (w.place) md += `- 地点：${w.place}\n`;
+      if (w.worldRules) md += `- 世界规则：${w.worldRules}\n`;
+      if (w.atmosphere) md += `- 氛围：${w.atmosphere}\n`;
+      if (w.diffFromReality) md += `- 跟现实不同：${w.diffFromReality}\n`;
+
+      md += `\n## 🎭 角色\n`;
+      d.characters.forEach(c => {
+        md += `\n### ${c.role || '角色'} · ${c.name || '（未命名）'}\n`;
+        if (c.identity) md += `- 身份：${c.identity}\n`;
+        if (c.desire) md += `- 欲望：${c.desire}\n`;
+        if (c.fear) md += `- 恐惧：${c.fear}\n`;
+        md += `- 读者好感 ${c.likability} · 作者投射 ${c.authorProjection}\n`;
+        if (c.backstory) md += `- 背景：\n  ${c.backstory.split('\n').join('\n  ')}\n`;
+      });
+
+      md += `\n## ⚔️ 冲突\n`;
+      const cf = d.conflict;
+      if (cf.externalMain) md += `- 外部主冲突：${cf.externalMain}\n`;
+      if (cf.internalMain) md += `- 内部主冲突：${cf.internalMain}\n`;
+      if (cf.subConflict) md += `- 副冲突：${cf.subConflict}\n`;
+      if (cf.climaxScene) md += `- 高潮场景：${cf.climaxScene}\n`;
+
+      md += `\n## 📚 章节\n`;
+      d.chapters.forEach(ch => {
+        md += `\n### Ch${String(ch.number).padStart(2,'0')} · ${ch.title || '（未命名）'}\n`;
+        if (ch.oneLine) md += `- 一句话：${ch.oneLine}\n`;
+        if (ch.pov) md += `- POV：${ch.pov}\n`;
+        if (ch.characters.length) md += `- 关联角色：${ch.characters.join('、')}\n`;
+        if (ch.keyScenes) md += `- 关键场景：\n  ${ch.keyScenes.split('\n').join('\n  ')}\n`;
+      });
+
+      md += `\n## 🎬 碎片池\n`;
+      d.fragments.forEach(f => { md += `- 【${f.type}】${f.content}\n`; });
+
+      md += `\n## 🎯 表达\n`;
+      if (d.message.coreMessage) md += `- 核心讯息：${d.message.coreMessage}\n`;
+      if (d.message.whyNow) md += `- 为什么现在写：${d.message.whyNow}\n`;
+
+      md += `\n## 🚫 反面清单\n`;
+      if (d.antilist.avoidTropes) md += `- 避开套路：${d.antilist.avoidTropes}\n`;
+      if (d.antilist.avoidHeroBecoming) md += `- 主角不能变：${d.antilist.avoidHeroBecoming}\n`;
+      if (d.antilist.avoidEndings) md += `- 结局不要：${d.antilist.avoidEndings}\n`;
+      return md;
+    },
+    async copyMd() {
+      try { await navigator.clipboard.writeText(this.markdown()); this.showToast('已复制 ✓'); }
+      catch(e) {
+        const ta = document.createElement('textarea'); ta.value = this.markdown();
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); this.showToast('已复制 ✓'); } catch(_) { this.showToast('复制失败'); }
+        document.body.removeChild(ta);
+      }
+    },
+    downloadMd() {
+      const now = new Date();
+      const stamp = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}-${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+      const blob = new Blob([this.markdown()], { type:'text/markdown;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `story-${(this.data.project.title||'untitled').replace(/[^\w一-龥]/g,'_')}-${stamp}.md`;
+      document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); document.body.removeChild(a); }, 500);
+      this.showToast('已下载 ✓');
+    },
+
+    showToast(msg) {
+      this.toast = msg;
+      clearTimeout(this._toastTimer);
+      this._toastTimer = setTimeout(() => this.toast = '', 1800);
+    },
+  };
+}
+</script>
+<!-- ⚖️ 页脚版权声明 (隐位，不抢镜头；未折叠时可见) -->
+<footer style="position:fixed;left:50%;bottom:8px;transform:translateX(-50%);z-index:50;font-size:11px;color:rgba(200,210,225,0.35);pointer-events:none;text-align:center;line-height:1.5;user-select:none;letter-spacing:0.02em">
+  © 2026 马启航Marvis · Kaysen Luo · All rights reserved<br>
+  未经授权禁止转载、复制、二次开发 · 拒绝 AI 训练采集
+</footer>
+
+</body>
+</html>

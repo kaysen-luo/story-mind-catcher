@@ -1,0 +1,111 @@
+/* MVS-013 v1.0 layout.css
+ * 3-col grid + collapse states + mobile drawer + card grid breakpoints
+ * from v0.3.1 index.html <style>, 0 change to rule bodies.
+ */
+
+.app{display:grid;grid-template-columns:240px 1fr 360px;height:100vh;overflow:hidden}
+
+.col{overflow-y:auto;border-right:1px solid var(--border-1)}
+
+.col:last-child{border-right:none}
+
+.tree-col{background:rgba(20,20,28,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:14px 10px;position:relative}
+
+@supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.tree-col{background:rgba(20,20,28,1)}}
+
+.form-col{padding:24px 30px 100px;position:relative}
+
+.preview-col{background:rgba(18,18,26,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:20px 22px 20px;display:flex;flex-direction:column;position:relative}
+
+@supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.preview-col{background:rgba(18,18,26,1)}}
+
+.preview-col h3{font-size:13px;font-weight:600;margin:0 0 4px;color:var(--text-2)}
+
+.preview-col .hint{font-size:10px;color:var(--text-3);margin-bottom:12px}
+
+.collapse-btn{position:absolute;top:8px;width:26px;height:26px;border-radius:6px;border:1px solid var(--border-2);background:var(--bg-2);color:var(--text-2);cursor:pointer;font-size:14px;line-height:1;display:none;align-items:center;justify-content:center;z-index:5;transition:background 120ms,color 120ms}
+
+.collapse-btn:hover{background:var(--bg-3);color:var(--accent);border-color:var(--accent)}
+
+.collapse-btn--left{right:8px}
+
+.collapse-btn--right{left:8px}
+
+@media(min-width:1024px){.collapse-btn{display:flex}}
+
+.app.left-collapsed{grid-template-columns:56px 1fr 360px}
+
+.app.right-collapsed{grid-template-columns:240px 1fr 0}
+
+.app.left-collapsed.right-collapsed{grid-template-columns:56px 1fr 0}
+
+@media(max-width:1279px) and (min-width:1024px){
+    .app.left-collapsed{grid-template-columns:56px 1fr 320px}
+    .app.right-collapsed{grid-template-columns:200px 1fr 0}
+    .app.left-collapsed.right-collapsed{grid-template-columns:56px 1fr 0}
+  }
+
+.tree-col.collapsed{padding:14px 4px;overflow-x:hidden}
+
+.tree-col.collapsed .brand__title,.tree-col.collapsed .brand__sub,.tree-col.collapsed .save-badge{display:none}
+
+.tree-col.collapsed .brand{padding:4px 0 8px;text-align:center;margin-bottom:6px}
+
+.tree-col.collapsed .brand::after{content:'SMC';display:block;font-size:10px;color:var(--text-3);font-weight:600;letter-spacing:0.05em}
+
+.tree-col.collapsed .collapse-btn{position:static;margin:0 auto 8px}
+
+.tree-col.collapsed .tree-node{padding:8px 4px;justify-content:center;flex-direction:column;gap:2px;font-size:11px;line-height:1.2}
+
+.tree-col.collapsed .tree-node__emoji{font-size:16px}
+
+.tree-col.collapsed .tree-node__name,
+  .tree-col.collapsed .count-badge,
+  .tree-col.collapsed .status-dot,
+  .tree-col.collapsed .sub-actions,
+  .tree-col.collapsed .add-child{display:none}
+
+.tree-col.collapsed .subtree{border-left:none;margin-left:0;padding-left:0}
+
+.tree-col.collapsed .subtree .tree-node{padding:5px 2px;font-size:10px}
+
+.tree-col.collapsed .subtree .tree-node__emoji{display:none}
+
+.tree-col.collapsed .subtree .tree-node__name{display:block;overflow:visible;white-space:nowrap;text-align:center;color:var(--text-2)}
+
+.tree-col.collapsed .subtree .tree-node.selected .tree-node__name{color:var(--accent)}
+
+.tree-col.collapsed .sub-row .tree-node{width:100%}
+
+.preview-col.collapsed{display:none}
+
+.right-floater{display:none;position:fixed;right:20px;top:16px;z-index:100;flex-direction:row;gap:10px;align-items:center}/* T1-patch11 2026-07-29: 右下→右上，避免遮挡碎片池删除按钮 */
+
+.right-floater .rf-btn{width:44px;height:44px;border-radius:50%;background:var(--accent-strong);color:white;border:none;cursor:pointer;font-size:19px;box-shadow:0 6px 20px rgba(74,158,255,0.4);display:flex;align-items:center;justify-content:center;transition:transform 120ms}
+
+.right-floater .rf-btn:hover{transform:scale(1.06)}
+
+@media(min-width:1024px){body.right-collapsed .right-floater{display:flex}}
+
+@media(min-width:1024px){body.right-collapsed .fab{right:20px}}/* T1-patch11b 2026-07-29: 折叠时记一笔球留右下，仅归位 */
+
+@media(max-width:1279px){.cards-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+@media(max-width:767px){.cards-grid{grid-template-columns:1fr}}
+
+@media(max-width:1279px){.app{grid-template-columns:200px 1fr 320px}.fab{right:340px}}
+
+@media(max-width:1023px){
+    .app{grid-template-columns:1fr}
+    .tree-col{position:fixed;top:0;left:0;width:260px;height:100vh;z-index:150;transform:translateX(-100%);transition:transform 200ms}
+    .tree-col.mobile-open{transform:translateX(0)}
+    .preview-col{position:fixed;top:0;right:0;width:320px;height:100vh;z-index:150;transform:translateX(100%);transition:transform 200ms}
+    .preview-col.mobile-open{transform:translateX(0)}
+    .mobile-bar{display:flex !important}
+    .fab{right:20px}
+  }
+
+.mobile-bar{display:none;position:sticky;top:0;z-index:90;background:var(--bg-1);padding:8px 12px;border-bottom:1px solid var(--border-1);gap:8px}
+
+/* T6 2026-07-29: 原 inline style 提取 */
+.preview-title{padding-left:36px}

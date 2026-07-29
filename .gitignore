@@ -1,0 +1,22 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.vite/
+.env
+.env.local
+
+# ── T5 (2026-07-29): 内部协作文档不进公开仓库 ──
+STATUS.md
+SESSION-LOG.md
+SESSION-LOG-archive/
+AUDIT-INBOX.md
+STATUS-LINT-INBOX.md
+decisions/
+reviews/
+SELFCHECK.md
+SELFCHECK-v031.md
+
+# archive/ 历史版本本地保留，不进公开仓库（T5 2026-07-29 K师拍板）
+archive/
+SELFCHECK-v1.0.md

@@ -1,0 +1,35 @@
+/* MVS-013 v1.0 base.css
+ * reset / vars / typography / scrollbar
+ * from v0.3.1 index.html <style>, 0 change to rule bodies.
+ */
+
+:root {
+    --bg-0:#14141c; --bg-1:#1a1a24; --bg-2:#22222e; --bg-3:#2d2d3a;
+    --border-1:#2f2f3d; --border-2:#40404f;
+    --text-1:#e8e8ef; --text-2:#a8a8b8; --text-3:#7a7a8c;
+    --accent:#4a9eff; --accent-strong:#3b82f6;
+    --accent-bg:rgba(74,158,255,0.14); --accent-bg-strong:rgba(74,158,255,0.24);
+    --ok:#34d399; --warn:#fbbf24; --danger:#f87171;
+    --dot-green:#34d399; --dot-yellow:#fbbf24; --dot-empty:#4a4a5a;
+  }
+
+*,*::before,*::after{box-sizing:border-box}
+
+html,body{margin:0;min-height:100%}
+
+button,input,textarea,select{font:inherit;color:inherit}
+
+textarea,input[type=text],input[type=number],select{width:100%;background:var(--bg-1);border:1px solid var(--border-1);color:var(--text-1);padding:8px 10px;border-radius:6px;font-size:13px;transition:border-color 120ms,background 120ms;font-family:inherit}
+
+/* T1-patch (2026-07-27): baseline 依赖 Tailwind CDN Preflight 给 form 元素做 background reset;
+   拆分后移除 Tailwind → input[type=number] 显示 UA 默认白底白字。
+   补上暗底规则，与 input[type=text] 对齐。修复 K师 v1.0 T1 冒烟 P0 bug 2。 */
+input[type=number]{color-scheme:dark}
+
+::-webkit-scrollbar{width:8px;height:8px}
+
+::-webkit-scrollbar-track{background:transparent}
+
+::-webkit-scrollbar-thumb{background:var(--bg-3);border-radius:4px}
+
+::-webkit-scrollbar-thumb:hover{background:var(--border-2)}
