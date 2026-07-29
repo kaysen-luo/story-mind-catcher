@@ -13,7 +13,7 @@
 
 @supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.tree-col{background:rgba(20,20,28,1)}}
 
-.form-col{padding:24px 30px 100px;position:relative}
+.form-col{padding:24px 30px 48px;position:relative}
 
 .preview-col{background:rgba(18,18,26,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:20px 22px 20px;display:flex;flex-direction:column;position:relative}
 
@@ -109,3 +109,6 @@
 
 /* T6 2026-07-29: 原 inline style 提取 */
 .preview-title{padding-left:36px}
+
+/* T1-patch12 2026-07-29: 页脚版权由 fixed 改为随内容流，只在滚到底时出现 */
+.page-footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--border-1);font-size:11px;line-height:1.6;letter-spacing:0.02em;color:rgba(200,210,225,0.32);text-align:center;user-select:none}
