@@ -79,6 +79,34 @@
 </head>
 <body x-data="app" x-init="init()">
 
+<!-- v1.1 阻塞-2 修复：文件操作持久入口（fixed 顶部浮层，不受任何折叠态影响）。
+     位置顶部居中，避开右上 right-floater / 右下 fab / 右下碎片删除钮。
+     左栏折叠 + 右栏折叠 + 移动端抽屉收起 三态下均可达。 -->
+  <div class="file-dock" x-show="fileSupported" style="display:none">
+    <button type="button" class="file-dock__toggle"
+            :class="'fs-'+fileState + (fileNeedsReconnect?' fs-reconnect':'')"
+            @click.stop="fileDockOpen=!fileDockOpen"
+            :title="fileStatusLabel()">
+      <span class="file-dock__dot"></span>
+      <span class="file-dock__icon" x-text="fileNeedsReconnect?'🔗':'📁'"></span>
+      <span class="file-dock__caret" x-text="fileDockOpen?'▴':'▾'"></span>
+    </button>
+    <div class="file-dock__panel" x-show="fileDockOpen" x-transition
+         @click.outside="fileDockOpen=false" style="display:none">
+      <div class="file-bar__status" :class="'fs-'+fileState + (fileNeedsReconnect?' fs-reconnect':'')">
+        <span class="file-bar__dot"></span>
+        <span class="file-bar__label" x-text="fileStatusLabel()"></span>
+      </div>
+      <div class="file-dock__actions">
+        <button class="btn btn--sm" @click="fileOpen()" title="打开本地 .smc 文件" aria-label="打开本地文件">📂 打开</button>
+        <button class="btn btn--sm" @click="fileSave()" title="保存到已关联文件（未关联则另存为）" aria-label="保存到文件">💾 保存</button>
+        <button class="btn btn--sm" @click="fileSaveAs()" title="另存为新的 .smc 文件" aria-label="另存为新文件">📄 另存为</button>
+        <button class="btn btn--sm btn--primary" x-show="fileNeedsReconnect" @click="fileReconnect()" title="上次文件权限已失效，点击重新授权" aria-label="重连文件">🔗 重连文件</button>
+        <button class="btn btn--sm" x-show="fileHandle && !fileNeedsReconnect" @click="fileDetach()" title="断开文件关联（不删磁盘文件）" aria-label="断开文件关联">✂️ 断开</button>
+      </div>
+    </div>
+  </div>
+
 <div class="app" :class="{'left-collapsed':leftCollapsed,'right-collapsed':rightCollapsed}">
   <!-- LEFT: TREE -->
   <aside class="col tree-col" :class="{'mobile-open':mobileTreeOpen,'collapsed':leftCollapsed}"
@@ -158,6 +186,7 @@
       <span class="tree-node__emoji">📚</span><span class="tree-node__name">已立项目</span>
       <span class="count-badge" x-text="projects.length"></span>
     </div>
+
   </aside>
 
   <!-- MIDDLE: FORM -->
@@ -651,6 +680,8 @@
       </div>
     </template>
 
+    <!-- 支持与反馈内容（2026-08-04 返工）：整页路由已删除，内容搬进底部 modal（对齐 MVS-010弹窗形态） -->
+
     <!-- Smart asks -->
     <div class="asks-section" x-show="currentAsks().length>0">
       <h3>🤔 智能追问</h3>
@@ -672,6 +703,9 @@
         </div>
       </template>
     </div>
+
+    <!-- T1-patch14 2026-07-30：弹性占位，内容少时把页脚推到底部 -->
+    <div class="footer-spacer" aria-hidden="true"></div>
 
     <!-- ⚖️ 页脚版权声明（T1-patch12 2026-07-29：由 fixed 改为随内容流置于页尾） -->
     <footer class="page-footer">
@@ -702,6 +736,132 @@
 
 <!-- Floating Brain Dump ball (hidden on desktop when right collapsed via body.right-collapsed CSS) -->
 <button class="fab" @click="dumpModal=true" title="快速记一笔">💭</button>
+
+<!-- Support & Feedback Modal (MVS-013 2026-08-04 返工：对齐 MVS-010 弹窗形态，内容顺序 = 收款码 → 反馈 → 更新日志) -->
+  <!-- 支持与反馈 FAB（2026-08-04 hotfix）：必须挂在 .app 之外的 body 层级。
+       原因：.tree-col 有 backdrop-filter，会为后代 position:fixed 创建包含块，
+       导致按钮退化为相对侧边栏定位并被 overflow-y:auto 裁剪 → 整个入口不可见。 -->
+  <button type="button" class="support-fab" :class="{'support-fab--mini':leftCollapsed}" @click="supportModal=true" title="支持与反馈">
+    <span class="heart">💛</span><span class="support-fab__label">支持与反馈</span>
+  </button>
+
+<div class="modal-bg" x-show="supportModal" x-transition @click.self="supportModal=false" @keydown.escape.window="supportModal && (supportModal=false)" style="display:none">
+  <div class="modal support-modal" @click.stop>
+    <h3 style="margin-bottom:14px">💛 支持与反馈</h3>
+    <div class="support-modal__body">
+      <p class="support-intro">Story Mind Catcher · 免费开源的小说架构编辑器。由 马启航Marvis 开发维护。</p>
+
+      <section class="support-section">
+        <h3 class="support-section__title">💰 支持作者</h3>
+        <div class="support-qr-row">
+          <!-- TODO: 替换收款码 — 将 .support-qr__placeholder 整块替换为 <img src="..." alt="微信收款码" class="support-qr__img"> 即可 -->
+          <div class="support-qr">
+            <div class="support-qr__placeholder">
+              <div class="support-qr__icon">💰</div>
+              <div class="support-qr__hint">收款码待放置</div>
+            </div>
+            <div class="support-qr__label">微信</div>
+          </div>
+          <!-- TODO: 替换收款码 — 将 .support-qr__placeholder 整块替换为 <img src="..." alt="支付宝收款码" class="support-qr__img"> 即可 -->
+          <div class="support-qr">
+            <div class="support-qr__placeholder">
+              <div class="support-qr__icon">💰</div>
+              <div class="support-qr__hint">收款码待放置</div>
+            </div>
+            <div class="support-qr__label">支付宝</div>
+          </div>
+        </div>
+        <p class="support-coffee">如果这个工具帮到了你，可以请作者喝杯咖啡 ☕</p>
+      </section>
+
+      <section class="support-section">
+        <h3 class="support-section__title">💬 反馈</h3>
+        <div class="support-fb-form" x-show="!fbTicket">
+          <textarea
+            class="support-fb-textarea"
+            :maxlength="FEEDBACK_CONTENT_MAX"
+            placeholder="说说遇到的问题或想要的功能…"
+            x-model="fbContent"
+            @input="fbOnInput()"></textarea>
+          <input
+            type="text"
+            class="support-fb-contact"
+            :maxlength="FEEDBACK_CONTACT_MAX"
+            placeholder="联系方式（选填，方便回复你）"
+            x-model="fbContact">
+          <div class="support-fb-meta">
+            <span class="support-fb-count" :class="{ 'is-over': fbOver }" x-text="fbCount + ' / ' + FEEDBACK_CONTENT_MAX"></span>
+            <button
+              type="button"
+              class="support-fb-submit"
+              :disabled="!fbCanSend"
+              @click="fbSubmit()"
+              x-text="fbSending ? '发送中…' : '发送'"></button>
+          </div>
+          <div class="support-fb-error" x-show="fbError" x-text="fbError"></div>
+        </div>
+        <div class="support-fb-success" x-show="fbTicket">
+          <div class="support-fb-success__row">
+            <span>✅ 已收到 · 工单号</span>
+            <span class="support-fb-success__ticket" title="可选中复制">#<span x-text="fbTicket"></span></span>
+            <button type="button" class="support-fb-again" @click="fbReset()">再发一条</button>
+          </div>
+          <p class="support-fb-success__note">作者会尽快查看。如需补充，可再发一条。</p>
+        </div>
+        <p class="support-fb-hint" x-show="FEEDBACK_FORM_URL || FEEDBACK_ISSUE_URL">
+          <template x-if="FEEDBACK_FORM_URL">
+            <span>想附截图？<a :href="FEEDBACK_FORM_URL" target="_blank" rel="noopener noreferrer">填详细问卷 →</a></span>
+          </template>
+          <template x-if="FEEDBACK_FORM_URL && FEEDBACK_ISSUE_URL">
+            <span>　·　</span>
+          </template>
+          <template x-if="FEEDBACK_ISSUE_URL">
+            <a :href="FEEDBACK_ISSUE_URL" target="_blank" rel="noopener noreferrer">🐛 技术问题 / GitHub</a>
+          </template>
+        </p>
+        <p class="support-fb-note">Bug、功能建议、使用疑问都欢迎，作者会逐条看。</p>
+      </section>
+
+      <section class="support-section">
+        <h3 class="support-section__title">📜 更新日志</h3>
+        <ol class="support-changelog">
+          <li class="support-changelog__item">
+            <div class="support-changelog__head"><span class="support-changelog__ver">v1.1</span><span class="support-changelog__date">2026-07-30</span></div>
+            <ul class="support-changelog__body">
+              <li>修复写入失败无提示的问题，新增存储告警</li>
+              <li>修复折叠态下部分入口不可达</li>
+              <li>修复切换档案时旧档数据残留</li>
+            </ul>
+          </li>
+          <li class="support-changelog__item">
+            <div class="support-changelog__head"><span class="support-changelog__ver">v1.0.0</span><span class="support-changelog__date">2026-07-28</span></div>
+            <ul class="support-changelog__body">
+              <li>工程化重构：Vite 构建 + 模块拆分</li>
+              <li>新增 PWA 支持，可安装到桌面 / 手机主屏</li>
+              <li>新增 IndexedDB 备份存储，降低数据丢失风险</li>
+            </ul>
+          </li>
+          <li class="support-changelog__item">
+            <div class="support-changelog__head"><span class="support-changelog__ver">v0.3.1</span><span class="support-changelog__date">2026-07-23</span></div>
+            <ul class="support-changelog__body">
+              <li>新增「已立项目」多档管理：新建 / 切换 / 复制 / 重命名 / 导出 / 删除</li>
+              <li>新增断点续传，回到上次编辑位置</li>
+            </ul>
+          </li>
+          <li class="support-changelog__item">
+            <div class="support-changelog__head"><span class="support-changelog__ver">v0.3</span><span class="support-changelog__date">2026-07-22</span></div>
+            <ul class="support-changelog__body">
+              <li>首个公开版本：三段式布局 + 9 大板块 + 智能追问</li>
+            </ul>
+          </li>
+        </ol>
+      </section>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn--ghost" @click="supportModal=false">关闭</button>
+    </div>
+  </div>
+</div>
 
 <!-- Brain Dump Modal -->
 <div class="modal-bg" x-show="dumpModal" x-transition @click.self="dumpModal=false" style="display:none">
@@ -880,6 +1040,13 @@
 </div>
 
 <div class="toast" x-show="toast" x-transition x-text="toast" style="display:none"></div>
+
+<!-- v1.1 阻塞-1：持久型错误告警（不自动消失，需手动关闭）。自动写回失败时弹。 -->
+<div class="error-banner" x-show="fileError" x-transition style="display:none" role="alert">
+  <span class="error-banner__icon">⚠️</span>
+  <span class="error-banner__msg" x-text="fileError"></span>
+  <button type="button" class="error-banner__close" @click="fileError=''" aria-label="关闭告警">✕</button>
+</div>
 
 <!-- Delete confirm modal (v0.3) -->
 <div class="modal-bg" x-show="deleteModal.open" x-transition @click.self="deleteModal.open=false" style="display:none">

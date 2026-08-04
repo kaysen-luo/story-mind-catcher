@@ -148,6 +148,45 @@ export async function kvSet(key, value) {
   return true;
 }
 
+// ============ 文件句柄持久化（v1.1 · File System Access）============
+// FileSystemFileHandle 可结构化克隆，Dexie/IndexedDB 可直接存。
+// 存进 kv 表，key 固定 'file-handle:<projectId>'，value = { handle, name, projectId }。
+// IDB 不可用时静默降级（返回 null / false），文件功能退回「每次手动打开」。
+
+function _fhKey(projectId) { return 'file-handle:' + projectId; }
+
+export async function saveFileHandle(projectId, handle, name) {
+  const db = await ensureDb();
+  if (!db) return false;
+  if (!projectId) return false;
+  try {
+    await db.kv.put({ key: _fhKey(projectId), value: { handle, name: name || '', projectId } });
+    return true;
+  } catch (e) {
+    console.warn('[mvs-013 db] saveFileHandle fail:', e && e.message);
+    return false;
+  }
+}
+
+export async function loadFileHandle(projectId) {
+  const db = await ensureDb();
+  if (!db) return null;
+  if (!projectId) return null;
+  try {
+    const r = await db.kv.get(_fhKey(projectId));
+    return r && r.value ? r.value : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+export async function deleteFileHandle(projectId) {
+  const db = await ensureDb();
+  if (!db) return false;
+  if (!projectId) return false;
+  try { await db.kv.delete(_fhKey(projectId)); return true; } catch (e) { return false; }
+}
+
 // ============ 迁移 ============
 
 /**

@@ -322,3 +322,95 @@ textarea{resize:vertical;line-height:1.65;min-height:60px}
 /* T1-patch8 (2026-07-28): 人物转变字段分组 */
 .field-group{border-top:1px solid var(--border-1);margin-top:14px;padding-top:10px}
 .field-group__title{font-size:12px;font-weight:600;color:var(--text-2);letter-spacing:.5px;margin-bottom:6px;text-transform:none}
+
+/* v1.1 · 本地文件存储状态条 + 操作区（沿用现有 design token，无新配色） */
+.file-bar{margin-top:12px;padding:10px;background:var(--bg-1);border:1px solid var(--border-1);border-radius:8px;display:flex;flex-direction:column;gap:8px}
+.file-bar__status{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-2)}
+.file-bar__dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:0 0 auto}
+.file-bar__status.fs-saved .file-bar__dot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.file-bar__status.fs-saved .file-bar__label{color:var(--text-1)}
+.file-bar__status.fs-dirty .file-bar__dot{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.file-bar__status.fs-saving .file-bar__dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.file-bar__status.fs-reconnect .file-bar__dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.file-bar__status.fs-reconnect .file-bar__label{color:var(--danger)}
+.file-bar__actions{display:flex;flex-wrap:wrap;gap:6px}
+
+/* v1.1 阻塞-2：持久文件入口浮层（fixed 顶部居中，不受折叠态影响） */
+.file-dock{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;align-items:center;gap:6px}
+.file-dock__toggle{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:999px;border:1px solid var(--border-2);background:rgba(20,20,28,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);color:var(--text-1);cursor:pointer;font-size:13px;box-shadow:0 4px 18px rgba(0,0,0,0.4);transition:border-color 120ms,background 120ms}
+.file-dock__toggle:hover{background:rgba(30,30,42,0.92);border-color:var(--accent)}
+.file-dock__dot{width:8px;height:8px;border-radius:50%;background:var(--text-3);flex:0 0 auto}
+.file-dock__toggle.fs-saved .file-dock__dot{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+.file-dock__toggle.fs-dirty .file-dock__dot{background:var(--warn);box-shadow:0 0 6px var(--warn)}
+.file-dock__toggle.fs-saving .file-dock__dot{background:var(--accent);box-shadow:0 0 6px var(--accent)}
+.file-dock__toggle.fs-reconnect .file-dock__dot{background:var(--danger);box-shadow:0 0 6px var(--danger)}
+.file-dock__icon{font-size:14px;line-height:1}
+.file-dock__caret{font-size:10px;color:var(--text-3)}
+.file-dock__panel{background:rgba(20,20,28,0.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--border-2);border-radius:10px;padding:12px;display:flex;flex-direction:column;gap:10px;min-width:230px;box-shadow:0 12px 40px rgba(0,0,0,0.5)}
+.file-dock__actions{display:flex;flex-wrap:wrap;gap:6px}
+
+/* v1.1 阻塞-1：持久型错误告警条（需手动关闭） */
+.error-banner{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:1000;max-width:min(560px,92vw);display:flex;align-items:flex-start;gap:10px;background:rgba(20,20,28,0.96);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border:1px solid var(--danger);border-radius:10px;padding:12px 14px;color:var(--text-1);font-size:13px;line-height:1.5;box-shadow:0 10px 40px rgba(0,0,0,0.55)}
+.error-banner__icon{flex:0 0 auto;font-size:15px;line-height:1.4}
+.error-banner__msg{flex:1 1 auto}
+.error-banner__close{flex:0 0 auto;background:none;border:none;color:var(--text-3);cursor:pointer;font-size:14px;line-height:1;padding:2px 4px;border-radius:4px;transition:color 120ms,background 120ms}
+.error-banner__close:hover{color:var(--text-1);background:var(--bg-3)}
+
+/* 支持作者（2026-07-31）—— 复用 accent / bg / text / border 变量，不引新色 */
+.tree-node--support{color:var(--text-2)}
+.tree-node--support:hover{color:var(--text-1)}
+.support-page{max-width:640px}
+/* MVS-013 返工 2026-08-04：左下角浮动按钮（对齐 MVS-010 .support-fab），内嵌于左侧 240px 侧边栏底部，写死不跟颜色 token 行，仅坐标与尺寸。 */
+.support-fab{position:fixed;left:12px;bottom:12px;width:216px;box-sizing:border-box;z-index:150;display:flex;align-items:center;justify-content:center;gap:8px;padding:10px 12px;border-radius:10px;background:rgba(129,140,248,0.10);color:var(--accent);border:1px solid rgba(129,140,248,0.30);cursor:pointer;font-size:12.5px;user-select:none;transition:background 120ms,border-color 120ms;backdrop-filter:blur(10px) saturate(140%);-webkit-backdrop-filter:blur(10px) saturate(140%)}
+.support-fab:hover{background:rgba(129,140,248,0.18);border-color:var(--accent)}
+.support-fab .heart{font-size:13px}
+.support-fab--mini{width:40px;padding:10px 0;gap:0}
+.support-fab--mini .support-fab__label{display:none}
+@media (max-width:900px){.support-fab{left:12px;right:12px;bottom:12px;width:auto}.support-fab--mini{width:auto;padding:10px 12px;gap:8px}.support-fab--mini .support-fab__label{display:inline}}
+/* support modal 体：变宽 + 内部滑动，避免内容长时顶到屏底 */
+.support-modal{width:min(560px,92vw);max-height:82vh;display:flex;flex-direction:column;padding:20px 22px 16px}
+.support-modal__body{overflow-y:auto;margin:0 -6px 12px;padding:0 6px;flex:1 1 auto}
+.support-intro{color:var(--text-2);font-size:13px;line-height:1.7;margin:0 0 20px;padding:10px 12px;background:var(--bg-1);border-left:2px solid var(--accent);border-radius:4px}
+.support-section{margin-bottom:22px}
+.support-section__title{font-size:14px;font-weight:600;color:var(--text-1);margin:0 0 10px;padding-bottom:6px;border-bottom:1px solid var(--border-1)}
+.support-changelog{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.support-changelog__item{background:var(--bg-1);border:1px solid var(--border-1);border-radius:6px;padding:10px 12px}
+.support-changelog__head{display:flex;align-items:baseline;gap:10px;margin-bottom:6px}
+.support-changelog__ver{font-weight:700;color:var(--accent);font-size:13px}
+.support-changelog__date{font-size:11px;color:var(--text-3)}
+.support-changelog__body{margin:0;padding-left:18px;color:var(--text-2);font-size:12.5px;line-height:1.65}
+.support-changelog__body li{margin:2px 0}
+.support-qr-row{display:flex;gap:20px;flex-wrap:wrap;justify-content:flex-start;margin:4px 0 10px}
+.support-qr{display:flex;flex-direction:column;align-items:center;gap:8px}
+.support-qr__placeholder{width:180px;height:180px;border:2px dashed var(--border-2);border-radius:8px;background:var(--bg-1);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--text-3)}
+.support-qr__icon{font-size:32px;opacity:.65}
+.support-qr__hint{font-size:12px;color:var(--text-3)}
+.support-qr__label{font-size:12px;color:var(--text-2)}
+.support-qr__img{width:180px;height:180px;object-fit:contain;border-radius:8px;background:#fff;padding:6px;box-sizing:border-box}
+.support-coffee{font-size:12px;color:var(--text-3);margin:4px 0 0}
+.support-feedback{font-size:12.5px;color:var(--text-2);margin:0}
+.support-feedback__link{color:var(--accent);text-decoration:none}
+.support-feedback__link:hover{text-decoration:underline}
+
+/* MVS-013 · 页内反馈工单（1:1 移植自 MVS-010，2026-08-04）——CSS token 用 013 既有变量 */
+.support-fb-form{display:flex;flex-direction:column;gap:8px;margin:4px 0 8px}
+.support-fb-textarea{width:100%;box-sizing:border-box;min-height:96px;resize:vertical;padding:10px 12px;background:var(--bg-0);border:1px solid var(--border-1);color:var(--text-1);border-radius:6px;font-size:13px;line-height:1.55;font-family:inherit}
+.support-fb-textarea:focus{outline:none;border-color:var(--accent);background:var(--bg-1)}
+.support-fb-contact{width:100%;box-sizing:border-box;padding:8px 12px;background:var(--bg-0);border:1px solid var(--border-1);color:var(--text-1);border-radius:6px;font-size:12.5px;font-family:inherit}
+.support-fb-contact:focus{outline:none;border-color:var(--accent);background:var(--bg-1)}
+.support-fb-meta{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.support-fb-count{font-size:11.5px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.support-fb-count.is-over{color:#ef6a6a;font-weight:600}
+.support-fb-submit{padding:8px 18px;border-radius:6px;font-size:13px;font-weight:600;border:1px solid var(--accent);background:var(--accent);color:var(--bg-0);cursor:pointer;transition:all .15s}
+.support-fb-submit:hover:not(:disabled){background:var(--accent-strong);border-color:var(--accent-strong)}
+.support-fb-submit:disabled{opacity:.45;cursor:not-allowed}
+.support-fb-hint{font-size:11.5px;color:var(--text-3);margin:4px 0 0}
+.support-fb-hint a{color:var(--accent);text-decoration:none}
+.support-fb-hint a:hover{text-decoration:underline}
+.support-fb-note{font-size:11.5px;color:var(--text-3);margin:0}
+.support-fb-error{font-size:12px;color:#ef6a6a;margin:4px 0 0}
+.support-fb-success{background:var(--bg-0);border:1px solid var(--border-1);border-left:3px solid #4ade80;border-radius:6px;padding:12px 14px}
+.support-fb-success__row{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-1);flex-wrap:wrap}
+.support-fb-success__ticket{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;background:var(--accent-bg);color:var(--accent);padding:2px 8px;border-radius:4px;font-weight:700;user-select:all;cursor:text}
+.support-fb-success__note{font-size:11.5px;color:var(--text-3);margin:6px 0 0}
+.support-fb-again{font-size:11.5px;color:var(--accent);background:none;border:none;padding:0;margin-left:8px;cursor:pointer;text-decoration:underline}

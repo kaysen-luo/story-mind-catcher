@@ -10,6 +10,8 @@
 import { STORAGE, GENRE_OPTIONS } from './constants.js';
 import * as db from './db.js';
 import { tryBootstrap, saveArchive as idbSaveArchive, deleteArchive as idbDeleteArchive, renameArchive as idbRenameArchive, kvSet as idbKvSet } from './db.js';
+import { saveFileHandle as idbSaveFileHandle, loadFileHandle as idbLoadFileHandle, deleteFileHandle as idbDeleteFileHandle } from './db.js';
+import * as fs from './fileStore.js';
 
 // T2 (2026-07-28): 写-through 到 IDB。全部 fire-and-forget，不 await，
 // 不影响同步主路径；IDB 不可用时 db.js 内部会静默降级。
@@ -39,6 +41,17 @@ function _idbMirrorKv(key, value) {
 }
 import { askRules, fallbackAsks } from './askAI.js';
 import { onNav } from './nav-bus.js';
+import {
+  FEEDBACK_API_URL,
+  FEEDBACK_CONTENT_MAX,
+  FEEDBACK_CONTACT_MAX,
+  FEEDBACK_FORM_URL,
+  FEEDBACK_ISSUE_URL,
+  FEEDBACK_ERROR_TEXT,
+  buildFeedbackPayload,
+  sanitizeTicketId,
+  classifyFeedbackError,
+} from './feedback.js';
 
 export function createApp() {
   return {
@@ -66,6 +79,7 @@ export function createApp() {
     mobileTreeOpen: false,
     mobilePreviewOpen: false,
     dumpModal: false,
+    supportModal: false,
     dumpText: '',
     dumpTarget: 'fragments',
     fragDraft: { type: '画面', content: '' },
@@ -77,6 +91,27 @@ export function createApp() {
     currentProjectId: null,
     projectSort: { by: 'updatedAt', order: 'desc' },
     deleteModal: { open: false, id: null, name: '' },
+
+    // ===== v1.1 · 本地文件存储（File System Access API）=====
+    // fileSupported: 能力检测结果（Safari/Firefox/iOS = false → 隐藏文件 UI）
+    // fileHandle: 当前档绑定的 FileSystemFileHandle（null = 未关联文件）
+    // fileName: 当前文件名（状态条显示用）
+    // fileState: 'unlinked'（未关联）| 'saved'（已保存）| 'dirty'（未保存更改）| 'saving'
+    // fileNeedsReconnect: 检测到上次文件句柄但权限未授予，需用户手势重连
+    fileSupported: false,
+    fileHandle: null,
+    fileName: '',
+    fileState: 'unlinked',
+    fileNeedsReconnect: false,
+    _fileSaveTimer: null,
+    // v1.1 阻塞-2：顶部文件浮层展开态
+    fileDockOpen: false,
+    // v1.1 阻塞-1：持久型错误告警文案（非空即显示，需用户手动关闭）
+    fileError: '',
+    // v1.1 建议-2：写入串行锁（同一时刻只有一个 createWritable 在途）
+    // _fileWriteChain: 当前写入 Promise 链尾；_fileWritePending: 是否有「写完再补一次」待处理
+    _fileWriteChain: null,
+    _fileWritePending: false,
 
     genreOptions: GENRE_OPTIONS,
 
@@ -95,6 +130,63 @@ export function createApp() {
 
     askRules,
     fallbackAsks,
+
+    // ===== MVS-013 反馈组件（1:1 移植自 MVS-010，2026-08-04）=====
+    FEEDBACK_CONTENT_MAX,
+    FEEDBACK_CONTACT_MAX,
+    FEEDBACK_FORM_URL,
+    FEEDBACK_ISSUE_URL,
+    fbContent: '',
+    fbContact: '',
+    fbSending: false,
+    fbTicket: '',   // 非空 → 展示成功态
+    fbError: '',    // 非空 → 展示错误提示
+    get fbCount() { return this.fbContent.length; },
+    get fbOver() { return this.fbContent.length > FEEDBACK_CONTENT_MAX; },
+    get fbCanSend() { return !this.fbSending && !this.fbOver && this.fbContent.trim().length > 0; },
+    fbReset() {
+      this.fbContent = '';
+      this.fbContact = '';
+      this.fbSending = false;
+      this.fbTicket = '';
+      this.fbError = '';
+    },
+    fbOnInput() { if (this.fbError) this.fbError = ''; },
+    async fbSubmit() {
+      if (!this.fbCanSend) return;
+      const built = buildFeedbackPayload({
+        content: this.fbContent,
+        contact: this.fbContact,
+        ua: (typeof navigator !== 'undefined' && navigator.userAgent) ? navigator.userAgent : '',
+      });
+      if (!built.ok) return; // 边界：空/超长——按钮 disabled 逻辑已挡，双保险
+      this.fbSending = true;
+      this.fbError = '';
+      try {
+        const resp = await fetch(FEEDBACK_API_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(built.payload),
+        });
+        if (!resp.ok) {
+          this.fbError = FEEDBACK_ERROR_TEXT[classifyFeedbackError(resp.status)];
+          this.fbSending = false;
+          return; // 失败保留已输入内容
+        }
+        let data = null;
+        try { data = await resp.json(); } catch (e) { data = null; }
+        if (!data || !data.ok) {
+          this.fbError = FEEDBACK_ERROR_TEXT.network;
+          this.fbSending = false;
+          return;
+        }
+        this.fbTicket = sanitizeTicketId(data.ticketId);
+        this.fbSending = false;
+      } catch (e) {
+        this.fbError = FEEDBACK_ERROR_TEXT.network;
+        this.fbSending = false;
+      }
+    },
 
     // ===== lifecycle =====
     init() {
@@ -131,11 +223,19 @@ export function createApp() {
       // v0.3 fix 1: event bus for reverse-nav (replaces Alpine _x_dataStack access)
       onNav((detail) => this.select(detail));
       this.rescanAsks();
+      // v1.1: 能力检测 + 尝试恢复上次文件句柄（不自动弹权限，只标记需重连）
+      this.fileSupported = fs.isSupported();
+      if (this.fileSupported) { this._restoreFileHandle(); }
     },
     uid() { this._uid++; return Date.now().toString(36) + '-' + this._uid; },
     touchData(sectionHint, detailHint) {
       this.recordLastAction(sectionHint, detailHint);
       this.saveDebounced();
+      // v1.1: 已关联文件时，标脏 + 节流写回文件（复用现有 debounce 节奏）
+      if (this.fileHandle) {
+        if (this.fileState !== 'saving') this.fileState = 'dirty';
+        this._fileSaveDebounced();
+      }
       clearTimeout(this._askTimer);
       this._askTimer = setTimeout(() => this.rescanAsks(), 400);
     },
@@ -420,6 +520,239 @@ export function createApp() {
       return clean;
     },
     resetData() { this.data = this.defaultData(); },
+
+    // ================= v1.1 · 本地文件存储方法集 =================
+    // 节奏写回文件（与 LS saveDebounced 对齐的独立节流，600ms）。
+    _fileSaveDebounced() {
+      clearTimeout(this._fileSaveTimer);
+      this._fileSaveTimer = setTimeout(() => this.fileSaveToDisk(), 600);
+    },
+    // 将当前档序列化为 .smc 文本（strip 空白碎片，与 LS 落盘一致）。
+    _currentSmcText() {
+      const cleaned = this._stripBlankFragmentsForSave(this.data);
+      return fs.serializeSmc(cleaned);
+    },
+    // “另存为”：弹 picker 选目标 → 写入 → 绑定 handle。
+    async fileSaveAs() {
+      if (!this.fileSupported) return;
+      try {
+        const name = fs.suggestFileName(this.data.project && this.data.project.title);
+        const handle = await fs.pickSaveFile(name);
+        if (!handle) return; // 用户取消
+        this.fileState = 'saving';
+        await fs.writeHandleText(handle, this._currentSmcText());
+        this.fileHandle = handle;
+        this.fileName = handle.name || name;
+        this.fileNeedsReconnect = false;
+        this.fileState = 'saved';
+        this._persistFileHandle();
+        this._clearFileError();
+        this.showToast('已另存为 ' + this.fileName);
+      } catch (e) {
+        this.fileState = this.fileHandle ? 'dirty' : 'unlinked';
+        console.error('fileSaveAs fail', e);
+        this._raiseFileError('另存为失败：' + ((e && e.message) || '未知错误'));
+      }
+    },
+    // “保存”：已绑定 handle 直接写回；未绑定退化为另存为。
+    async fileSave() {
+      if (!this.fileSupported) return;
+      if (!this.fileHandle) { return this.fileSaveAs(); }
+      return this.fileSaveToDisk(true);
+    },
+    // 实际写回磁盘（自动保存 + 手动保存共用）。
+    // 建议-2：所有写入经 _enqueueWrite 串行化，避免并发 createWritable 触发 NoModificationAllowedError。
+    // @param {boolean} [showTip] 手动保存时弹 toast。
+    async fileSaveToDisk(showTip) {
+      if (!this.fileHandle) return;
+      return this._enqueueWrite(showTip);
+    },
+    // 建议-2：写入串行队列。同一时刻只有一个 createWritable 在途；
+    // 排队期间的重复请求合并为「写完再补最新一次」（_fileWritePending）。
+    _enqueueWrite(showTip) {
+      if (this._fileWriteChain) {
+        // 已有写入在途 → 标记「写完后再补一次最新内容」，不并发进入。
+        this._fileWritePending = true;
+        // 手动保存要 tip 时，链尾补一次带 tip 的兜底提示。
+        if (showTip) this._fileWriteChainWantTip = true;
+        return this._fileWriteChain;
+      }
+      this._fileWriteChain = this._doWrite(showTip)
+        .finally(async () => {
+          this._fileWriteChain = null;
+          if (this._fileWritePending) {
+            this._fileWritePending = false;
+            const tip = this._fileWriteChainWantTip || false;
+            this._fileWriteChainWantTip = false;
+            // 用最新内容再写一次（合并期间的多次改动）。
+            await this._enqueueWrite(tip);
+          }
+        });
+      return this._fileWriteChain;
+    },
+    // 单次真实写盘（不并发调用，仅由 _enqueueWrite 驱动）。
+    async _doWrite(showTip) {
+      if (!this.fileHandle) return;
+      try {
+        // 写前确认权限（可能被撤销）；query 不需手势。
+        const perm = await fs.queryHandlePermission(this.fileHandle, true);
+        if (perm !== 'granted') {
+          // 权限不在了 → 标记需重连，不在自动流里强要（requestPermission 需手势）
+          this.fileNeedsReconnect = true;
+          this.fileState = 'dirty';
+          // 阻塞-1：无论手动/自动，权限失效都必须醒目告警（否则用户以为在存）。
+          this._raiseFileError('文件权限已失效，你的改动尚未写入文件。请点顶部文件入口的「重连文件」，或用「另存为」重新保存。');
+          return;
+        }
+        this.fileState = 'saving';
+        // writeHandleText 已做原子保护：中途失败会 abort swap，原文件不被截断。
+        await fs.writeHandleText(this.fileHandle, this._currentSmcText());
+        this.fileState = 'saved';
+        // 写成功 → 清掉之前的文件错误告警。
+        this._clearFileError();
+        if (showTip) this.showToast('已保存 ' + this.fileName);
+      } catch (e) {
+        this.fileState = 'dirty';
+        console.error('fileSaveToDisk fail', e);
+        // 阻塞-1：自动写回失败不能静默。弹持久型告警（不自动消失）。
+        // 降级保底：LocalStorage 主存路径与文件写入完全独立，此处失败不影响 LS，
+        // 且 touchData → saveDebounced 已把最新内容写进 LS，用户数据不丢。
+        this._raiseFileError('自动保存失败，你的改动尚未写入文件（原文件未被破坏，已保留）。请手动用顶部「另存为」重新保存。错误：' + ((e && e.message) || '未知错误'));
+      }
+    },
+    // 阻塞-1：抛出持久型文件错误告警（覆盖旧告警）。
+    _raiseFileError(msg) {
+      this.fileError = msg;
+    },
+    _clearFileError() {
+      this.fileError = '';
+    },
+    // “打开”：弹 picker → 读入 → 校验 → 载入当前档。
+    async fileOpen() {
+      if (!this.fileSupported) return;
+      try {
+        const handle = await fs.pickOpenFile();
+        if (!handle) return; // 取消
+        const text = await fs.readHandleText(handle);
+        const res = fs.parseSmc(text);
+        if (!res.ok) { this.showToast('打开失败：' + res.error); return; }
+        this._applyLoadedData(res.data);
+        this.fileHandle = handle;
+        this.fileName = handle.name || '';
+        this.fileNeedsReconnect = false;
+        this.fileState = 'saved';
+        this._persistFileHandle();
+        this.showToast('已打开 ' + this.fileName);
+      } catch (e) {
+        console.error('fileOpen fail', e);
+        this.showToast('打开失败：' + ((e && e.message) || '未知错误'));
+      }
+    },
+    // 文件数据载入当前档（走现有 LS 写入主路，不新造存储）。
+    _applyLoadedData(data) {
+      this.data = Object.assign(this.defaultData(), data || {});
+      this.current = { type: 'project' };
+      this._lastAskScan = {};
+      if (!Array.isArray(this.data.chapters) || this.data.chapters.length === 0) {
+        this.data.chapters = [this.newChapter(1)];
+      }
+      this.initFragmentPools();
+      this.saveProjectData(); // 同步回写 LS（运行时状态）
+      this.rescanAsks();
+    },
+    // 断开当前文件关联（不删磁盘文件，只解除绑定）。
+    fileDetach() {
+      this._resetFileState({ persistDelete: true });
+      this.showToast('已断开文件关联（磁盘文件保留）');
+    },
+    // 高优-1：切档时强制解绑 fileHandle，防止把 B 档内容静默写进 A 档文件。
+    // @param {object} [opts] persistDelete=true 时同时从 IDB 删除当前档的句柄记录（断开用）；
+    //   切档不传（只解绑内存态，目标档自己的句柄由 _restoreFileHandle 恢复）。
+    _resetFileState(opts) {
+      const o = opts || {};
+      clearTimeout(this._fileSaveTimer);
+      // 丢弃在途的写入链标记（旧 handle 的写入不再补写）。
+      this._fileWritePending = false;
+      this._fileWriteChainWantTip = false;
+      const prevId = o.persistDelete ? this.currentProjectId : null;
+      this.fileHandle = null;
+      this.fileName = '';
+      this.fileState = 'unlinked';
+      this.fileNeedsReconnect = false;
+      this._clearFileError();
+      if (prevId) { try { idbDeleteFileHandle(prevId); } catch (e) {} }
+    },
+    // 高优-1：切档前若当前档已绑定文件且有未保存改动，尽量先把最后一次写回（fire-and-forget）。
+    // 不阻塞切档（避免 UI 卡）；真失败会由 _doWrite 的持久告警兼顶，LS 主存不丢。
+    _flushFileBeforeSwitch() {
+      if (!this.fileHandle) return;
+      if (this.fileNeedsReconnect) return; // 权限不在，写也白写
+      if (this.fileState !== 'dirty' && this.fileState !== 'saving') return;
+      clearTimeout(this._fileSaveTimer);
+      // 捕获旧 handle + 当前内容快照，不依赖实例态（随后会被 _resetFileState 置 null）。
+      const handle = this.fileHandle;
+      const text = this._currentSmcText();
+      // fire-and-forget：切档不等；真失败时弹持久告警（LS 主存不丢）。
+      (async () => {
+        try {
+          const perm = await fs.queryHandlePermission(handle, true);
+          if (perm !== 'granted') return;
+          await fs.writeHandleText(handle, text);
+        } catch (e) {
+          console.error('flush before switch fail', e);
+          this._raiseFileError('切档前自动保存上一个档失败（原文件未被破坏，已保留）。请切回那个档用「保存」重试。');
+        }
+      })();
+    },
+    // 重连上次文件：**必须用户手势触发**（按钮点击），请求权限后读回。
+    async fileReconnect() {
+      if (!this.fileHandle) return;
+      try {
+        const perm = await fs.requestHandlePermission(this.fileHandle, true);
+        if (perm !== 'granted') { this.showToast('权限未授予，无法重连文件'); return; }
+        this.fileNeedsReconnect = false;
+        this.fileState = 'dirty';
+        this._clearFileError();
+        await this.fileSaveToDisk(true);
+        this.showToast('已重连 ' + this.fileName);
+      } catch (e) {
+        console.error('fileReconnect fail', e);
+        this._raiseFileError('重连失败：' + ((e && e.message) || '未知错误'));
+      }
+    },
+    // 启动时恢复上次文件句柄（不请求权限，only query，需重连时标记）。
+    async _restoreFileHandle() {
+      if (!this.currentProjectId) return;
+      try {
+        const rec = await idbLoadFileHandle(this.currentProjectId);
+        if (!rec || !rec.handle) return;
+        this.fileHandle = rec.handle;
+        this.fileName = rec.name || (rec.handle && rec.handle.name) || '';
+        const perm = await fs.queryHandlePermission(rec.handle, true);
+        if (perm === 'granted') {
+          this.fileState = 'saved';
+          this.fileNeedsReconnect = false;
+        } else {
+          // 需用户手势重连（不在 init 自动弹权限）
+          this.fileState = 'saved';
+          this.fileNeedsReconnect = true;
+        }
+      } catch (e) { /* 静默降级 */ }
+    },
+    _persistFileHandle() {
+      if (!this.currentProjectId || !this.fileHandle) return;
+      try { idbSaveFileHandle(this.currentProjectId, this.fileHandle, this.fileName); } catch (e) {}
+    },
+    // 状态条文案
+    fileStatusLabel() {
+      if (this.fileNeedsReconnect) return '需重连文件';
+      switch (this.fileState) {
+        case 'saved': return '已保存 · ' + (this.fileName || '文件');
+        case 'saving': return '保存中… · ' + (this.fileName || '文件');
+        case 'dirty': return '未保存更改 · ' + (this.fileName || '文件');
+        default: return '未关联文件';
+      }
+    },
     isDataEmpty() {
       const d = this.data;
       const flat = [d.project.title, d.project.oneLineStory, d.project.theme, d.project.readerProfile, d.project.lengthType,
@@ -533,21 +866,31 @@ export function createApp() {
     },
     switchProject(id, targetNode) {
       if (id === this.currentProjectId) return;
+      // 高优-1：切档前若当前档有未保存改动，先试图补写（不阻塞 UI）。
+      this._flushFileBeforeSwitch();
       this.autoDropEmptyCurrent();
       const proj = this.projects.find(p => p.id === id);
       if (!proj) return;
+      // 高优-1：强制解绑旧档 fileHandle，防止 B 档内容写进 A 档文件。
+      this._resetFileState();
       this.currentProjectId = id;
       localStorage.setItem(this.STORAGE_CURRENT, id);
       this.loadProjectData(id);
+      // 恢复目标档自己的文件句柄（若有）。
+      if (this.fileSupported) { this._restoreFileHandle(); }
       this.select(targetNode || { type: 'project' });
     },
     resumeProject(id) {
       const proj = this.projects.find(p => p.id === id);
       if (!proj) return;
+      this._flushFileBeforeSwitch();
       this.autoDropEmptyCurrent();
+      // 高优-1：强制解绑旧档 fileHandle。
+      this._resetFileState();
       this.currentProjectId = id;
       localStorage.setItem(this.STORAGE_CURRENT, id);
       this.loadProjectData(id);
+      if (this.fileSupported) { this._restoreFileHandle(); }
       const la = proj.lastAction;
       let target = { type: 'project' };
       if (la) {
@@ -663,7 +1006,7 @@ export function createApp() {
       }
       this.current = target;
       this.mobileTreeOpen = false;
-      if (target && target.type && target.type !== 'projects') {
+      if (target && target.type && target.type !== 'projects' && target.type !== 'support') {
         this.recordLastAction();
         this.saveDebounced();
       }
@@ -676,8 +1019,10 @@ export function createApp() {
         'chapters-root':'📚 章节', 'fragments':'🎬 碎片池',
         'message':'🎯 表达', 'antilist':'🚫 反面清单',
         'projects':'📚 已立项目',
+        'support':'💛 支持作者',
       };
       if (t === 'projects') return `<span class="current">📚 已立项目</span>`;
+      if (t === 'support') return `<span class="current">💛 支持作者</span>`;
       if (t === 'character') {
         const c = this.currentCharacter();
         return `<span>🎭 角色</span><span class="sep">›</span><span class="current">${this._esc(c?.name || '（未命名）')}</span>`;
@@ -696,6 +1041,7 @@ export function createApp() {
         'conflict':'⚔️ 冲突','chapters-root':'📚 章节列表','fragments':'🎬 碎片池',
         'message':'🎯 想表达什么','antilist':'🚫 反面清单',
         'projects':'📚 已立项目',
+        'support':'💛 支持作者',
       };
       if (t === 'character') {
         const c = this.currentCharacter();

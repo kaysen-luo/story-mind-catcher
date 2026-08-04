@@ -13,7 +13,12 @@
 
 @supports not ((backdrop-filter:blur(50px)) or (-webkit-backdrop-filter:blur(50px))){.tree-col{background:rgba(20,20,28,1)}}
 
-.form-col{padding:24px 30px 48px;position:relative}
+/* T1-patch14 2026-07-30：flex 列 + footer margin-top:auto，内容少时页脚仍贴底（修 patch12 副作用） */
+.form-col{padding:24px 30px 48px;position:relative;display:flex;flex-direction:column}
+
+.form-col > *{flex-shrink:0}
+
+.footer-spacer{flex:1 0 56px;min-height:56px}
 
 .preview-col{background:rgba(18,18,26,0.75);backdrop-filter:blur(50px);-webkit-backdrop-filter:blur(50px);padding:20px 22px 20px;display:flex;flex-direction:column;position:relative}
 
@@ -111,4 +116,4 @@
 .preview-title{padding-left:36px}
 
 /* T1-patch12 2026-07-29: 页脚版权由 fixed 改为随内容流，只在滚到底时出现 */
-.page-footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--border-1);font-size:11px;line-height:1.6;letter-spacing:0.02em;color:rgba(200,210,225,0.32);text-align:center;user-select:none}
+.page-footer{margin-top:0;padding-top:18px;border-top:1px solid var(--border-1);font-size:11px;line-height:1.6;letter-spacing:0.02em;color:rgba(200,210,225,0.32);text-align:center;user-select:none}
