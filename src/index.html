@@ -4,7 +4,7 @@
   Story Mind Catcher · 小说架构编辑器
   ============================================================================
   项目: MVS-013 Story Mind Catcher
-  版本: v1.0.0
+  版本: v1.1.0
   作者: 马启航 Marvis (for Kaysen Luo)
   日期: 2026-07-29
   栈: Vite + Alpine.js + Dexie(IndexedDB) + vite-plugin-pwa
@@ -47,7 +47,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Story Mind Catcher · 小说架构编辑器 v1.0.0-alpha.1</title>
+<title>Story Mind Catcher · 小说架构编辑器 v1.1.0</title>
 
 <!-- ⚖️  版权声明 -->
 <meta name="author" content="马启航Marvis (for Kaysen Luo)">
@@ -115,7 +115,7 @@
             :title="leftCollapsed?'展开菜单':'折叠菜单'" x-text="leftCollapsed?'»':'«'"></button>
     <div class="brand">
       <div class="brand__title"><span class="brand__dot"></span>Story Mind Catcher</div>
-      <div class="brand__sub">小说架构编辑器 · v1.0</div>
+      <div class="brand__sub">小说架构编辑器 · v1.1</div>
       <div class="save-badge" :class="{saved:savedRecently}" x-text="savedRecently?'已保存 ✓':'自动保存'"></div>
     </div>
 
@@ -1062,7 +1062,7 @@
     </div>
   </div>
 </div>
-<div class="footer-tag">马启航Marvis · MVS-013 · v1.0.0 · 2026-07-29</div>
+<div class="footer-tag">马启航Marvis · MVS-013 · v1.1.0 · 2026-08-07</div>
 
 <script type="module" src="/main.js"></script>
 </body>
